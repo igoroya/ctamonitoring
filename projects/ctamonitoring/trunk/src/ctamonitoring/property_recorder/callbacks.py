@@ -116,14 +116,25 @@ class BaseArchCB:
             Nothing
         '''
 
-        self._logger.logTrace('Monitor of ' + self.name +
-                           ', WORKING, value read is: ' + str(value)
-                           + '  time: ' + str(completion.timeStamp)
-                           + ' type: ' + str(completion.type)
-                           + ' code: '
-                           + str(completion.code))
-        self.buffer.add(completion.timeStamp, value)
+        self._logger.logDebug('Monitor of ' 
+                              + self.name + ', WORKING, value read is: ' 
+                              + str(value) + '  time: ' 
+                              + str(completion.timeStamp) 
+                              + ' type: ' + str(completion.type) + ' code: '
+                              + str(completion.code))      
+        
+        #Do not write the value if an exception happened, but notify
+        if completion.type != 0:
+            self._logger.logWarning('Property: '+ self.name + ' completion type: ' 
+                                    + ' type: ' + str(completion.type)
+                                    + ' code: '
+                                    + str(completion.code)
+                                    +', data is not stored')           
+           
+        else:     
+            self.buffer.add(completion.timeStamp, value)
 
+        
         # If in the future we want to take care of completions types and code then:
         # self.buffer.add(completion.timeStamp,  value, completion.type
         # completion.code)
@@ -160,15 +171,22 @@ class BaseArchCB:
         # to make pychecker happy
         desc = None
 
-        self._logger.logTrace('Monitor of ' + self.name +
+        self._logger.logDebug('Monitor of ' + self.name +
                              ' DONE, value read is: '
                              + str(value) + '  time: '
                              + str(completion.timeStamp)
                              + ' type: ' + str(completion.type)
                              + ' code: ' + str(completion.code))
-
-        self.buffer.add(completion.timeStamp, value)
-
+        
+        if completion.type != 0:
+          self._logger.logWarning('Property: '+ self.name + ' completion type: ' 
+                                    + ' type: ' + str(completion.type)
+                                    + ' code: '
+                                    + str(completion.code)
+                                    +', data is not stored')   
+        else:     
+            self.buffer.add(completion.timeStamp, value)
+      
         # If in the future we want to take care of completions types and code then:
         # self.buffer.add(completion.timeStamp,  value, completion.type
         # completion.code)
@@ -511,7 +529,7 @@ class ArchCBpatternStringRep(BaseArchCB, ACS__POA.CBpattern):
         '''
 
         if self._enumStates is not None:
-            self._logger.logTrace('Monitor of ' + self.name
+            self._logger.logDebug('Monitor of ' + self.name
                                + ', WORKING, state read is: '
                                + self._enumStates[value]
                                + '  time: ' + str(completion.timeStamp)
@@ -520,10 +538,20 @@ class ArchCBpatternStringRep(BaseArchCB, ACS__POA.CBpattern):
             #self.buffer.add(completion.timeStamp, value)
             # TODO: I think that the backend can do the conversion from enums to sting rep
             # so might be needed to change
-            self.buffer.add(completion.timeStamp, self._enumStates[value])
+
+            if completion.type != 0:
+                self._logger.logWarning('Property: '+ self.name + ' completion type: ' 
+                                        + ' type: ' + str(completion.type)
+                                        + ' code: '
+                                        + str(completion.code)
+                                        +', data is not stored')     
+             
+            else:     
+                self.buffer.add(completion.timeStamp, self._enumStates[value])
 
         else:
             BaseArchCB.working(self, value, completion, desc)
+
 
         completion = None
         # to make pychecker happy
@@ -553,18 +581,28 @@ class ArchCBpatternStringRep(BaseArchCB, ACS__POA.CBpattern):
         desc = None
 
         if self._enumStates is not None:
-            self._logger.logTrace('Monitor of ' +
-                                 self.name + ' DONE , state read is: '
-                                 + self._enumStates[value] + '  time: '
-                                 + str(completion.timeStamp) + ' type: '
-                                 + str(completion.type) + ' code: '
-                                 + str(completion.code))
-
+            self._logger.logDebug('Monitor of ' + self.name
+                                  + ', DONE, state read is: '
+                                  + self._enumStates[value]
+                                  + '  time: ' + str(completion.timeStamp)
+                                  + ' type: ' + str(completion.type)
+                                  + ' code: ' + str(completion.code))
             #self.buffer.add(completion.timeStamp, value)
-            self.buffer.add(completion.timeStamp, self._enumStates[value])
+            # TODO: I think that the backend can do the conversion from enums to sting rep
+            # so might be needed to change
+
+            if completion.type != 0:
+                self._logger.logWarning('Property: '+ self.name + ' completion type: ' 
+                                        + ' type: ' + str(completion.type)
+                                        + ' code: '
+                                        + str(completion.code)
+                                        +', data is not stored')   
+             
+            else:     
+                self.buffer.add(completion.timeStamp, self._enumStates[value])
 
         else:
-            BaseArchCB.done(self, value, completion, desc)
+            BaseArchCB.working(self, value, completion, desc)
 
        # Save completion to be able to fetch the error code.
         self.completion = completion
