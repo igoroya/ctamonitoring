@@ -7,6 +7,7 @@ import ACS__POA
 from ctamonitoring.property_recorder.callbacks import CBFactory
 from ctamonitoring.property_recorder import constants
 from ctamonitoring.property_recorder.util import PropertyTypeUtil
+from ctamonitoring.property_recorder.util import DecodeUtil
 from ctamonitoring.property_recorder.backend import dummy
 from ctamonitoring.property_recorder.backend import log
 from ctamonitoring.property_recorder.backend import mongodb
@@ -1260,8 +1261,14 @@ class property_characteristics():
                 except Exception:
                     propDict['resolution'] = None
                 try:
-                    propDict['units'] = myPro.get_characteristic_by_name(
+                    data = myPro.get_characteristic_by_name(
                         'units').value()
+                    #MongoDB backend can only handle utf8 data, so we check that 
+                    #TODO: Use with other attributes?
+                    udata = DecodeUtil.try_utf8(data)
+                    if udata is None:
+                        self._logger.logWarning("units is not using UTF-8 data format, ignoring")
+                    propDict['units'] = udata
                 except Exception:
                     propDict['units'] = None
                 try:
@@ -1562,8 +1569,13 @@ class property_characteristics_xml_objectifier(property_characteristics):
             except Exception:
                 propDict['resolution'] = None
             try:
-                propDict['units'] = propertyCDB.firstChild.getAttribute(
+                data = propertyCDB.firstChild.getAttribute(
                     'units').decode()
+                    #MongoDB backend can only handle utf8 data, so we check that 
+                udata = DecodeUtil.try_utf8(data)
+                if udata is None:
+                    self._logger.logWarning("units is not using UTF-8 data format, ignoring")
+                propDict['units'] = udata
             except Exception:
                 propDict['units'] = None
             try:

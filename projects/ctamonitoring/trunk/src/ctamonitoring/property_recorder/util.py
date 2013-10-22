@@ -125,3 +125,15 @@ class PropertyTypeUtil():
             raise ValueError
 
         return enumDict
+
+class DecodeUtil():
+    """
+    Holds utilities to decode data from the CDB
+    """
+    @staticmethod
+    def try_utf8(data):
+        "Returns a Unicode object on success, or None on failure"
+        try:
+            return data.decode('utf-8')
+        except UnicodeDecodeError:
+            return None
