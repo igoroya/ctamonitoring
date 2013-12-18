@@ -91,7 +91,6 @@ class BaseArchCB:
             self._logger.addHandler(ch)
         else:
             self._logger = logger
-
         # Flag for the application to check if the action is still going on
         # and if the callback has arrived.
         self.status = 'INIT'

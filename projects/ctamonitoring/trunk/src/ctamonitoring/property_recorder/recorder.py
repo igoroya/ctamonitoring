@@ -1162,22 +1162,19 @@ class property_characteristics():
                 propDict = {}
 
                 propDict['name'] = myPro._get_name()
-                propDict['timestamp'] = myPro.get_sync()[1].timeStamp
                 try:
-                    propDict['archive_priority'] = str(
-                        myPro.get_characteristic_by_name(
+                    propDict['archive_priority'] = ast.literal_eval(myPro.get_characteristic_by_name(
                             "archive_priority").value())
                 except Exception:
                     propDict['archive_priority'] = None
                 try:
-                    propDict['archive_min_int'] = str(
-                        myPro.get_characteristic_by_name(
+                    propDict['archive_min_int'] = ast.literal_eval(myPro.get_characteristic_by_name(
                             "archive_min_int").value())
                 except Exception:
                     propDict['archive_min_int'] = None
                 try:
-                    propDict['archive_max_int'] = str(
-                        myPro.get_characteristic_by_name("archive_max_int").value())
+                    propDict['archive_max_int'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                            "archive_max_int").value())
                 except Exception:
                     propDict['archive_max_int'] = None
                 try:
@@ -1195,29 +1192,29 @@ class property_characteristics():
                 except Exception:
                     propDict['archive_mechanism'] = None
                 try:
-                    propDict['archive_delta'] = myPro.get_characteristic_by_name(
-                        'archive_delta').value()
+                    propDict['archive_delta'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'archive_delta').value())
                 except Exception:
                     propDict['archive_delta'] = None
                 try:
-                    propDict['archive_delta_percent'] = myPro.get_characteristic_by_name(
-                        'archive_delta_percent').value()
+                    propDict['archive_delta_percent'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'archive_delta_percent').value())
                 except Exception:
                     propDict['archive_delta_percent'] = None
                 try:
-                    defaultTime = myPro.get_characteristic_by_name(
-                        'default_timer_trig').value()
+                    defaultTime = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'default_timer_trig').value())
                     # make sure that we handle 0s or negative values, as this
                     # is important
-                    if ast.literal_eval(defaultTime) <= 0.0:
+                    if defaultTime <= 0.0:
                         propDict['default_timer_trig'] = None
                     else:
                         propDict['default_timer_trig'] = defaultTime
                 except Exception:
                     propDict['default_timer_trig'] = None
                 try:
-                    propDict['default_value'] = myPro.get_characteristic_by_name(
-                        'default_value').value()
+                    propDict['default_value'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'default_value').value())
                 except Exception:
                     propDict['default_value'] = None
                 try:
@@ -1231,33 +1228,33 @@ class property_characteristics():
                 except Exception:
                     propDict['format'] = None
                 try:
-                    propDict['graph_max'] = myPro.get_characteristic_by_name(
-                        'graph_max').value()
+                    propDict['graph_max'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'graph_max').value())
                 except Exception:
                     propDict['graph_max'] = None
                 try:
-                    propDict['graph_min'] = myPro.get_characteristic_by_name(
-                        'graph_min').value()
+                    propDict['graph_min'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'graph_min').value())
                 except Exception:
                     propDict['graph_min'] = None
                 try:
-                    propDict['min_delta_trig'] = myPro.get_characteristic_by_name(
-                        'min_delta_trig').value()
+                    propDict['min_delta_trig'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'min_delta_trig').value())
                 except Exception:
                     propDict['min_delta_trig'] = None
                 try:
-                    propDict['min_step'] = myPro.get_characteristic_by_name(
-                        'min_step').value()
+                    propDict['min_step'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'min_step').value())
                 except Exception:
                     propDict['min_step'] = None
                 try:
-                    propDict['min_timer_trig'] = myPro.get_characteristic_by_name(
-                        'min_timer_trig').value()
+                    propDict['min_timer_trig'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'min_timer_trig').value())
                 except Exception:
                     propDict['min_timer_trig'] = None
                 try:
-                    propDict['resolution'] = myPro.get_characteristic_by_name(
-                        'resolution').value()
+                    propDict['resolution'] = ast.literal_eval(myPro.get_characteristic_by_name(
+                        'resolution').value())
                 except Exception:
                     propDict['resolution'] = None
                 try:
@@ -1358,16 +1355,14 @@ class property_characteristics():
         timeTriggerOmg = self.__defaultMonitorRate
 
         try:
-            timeTriggerCasted = ast.literal_eval(
-                propDict.get("default_timer_trig"))
+            timeTriggerOmg = long(10000000 * propDict.get("default_timer_trig"))
             # threre were getting cast problems and annoying behavior so went
             # to the safe side
             # change to OMG time
-            timeTriggerOmg = long(timeTriggerCasted * 10000000)
+            
         except Exception:
             self._logger.logDebug("no time trigger found in the CDB, "
-                                  "using the default value of %l"
-                                  % self.__defaultMonitorRate)
+                                  "using the default value")
             timeTriggerOmg = self.__defaultMonitorRate
 
         # archive_delta and archive_delta_percent can come in several
@@ -1376,21 +1371,22 @@ class property_characteristics():
         if propDict.get("archive_delta") == "false":
             aDelta = False
         elif (propDict.get("archive_delta") == "0"
-              or propDict.get("archive_delta") == "0.0"):
-            aDelta = False
-        elif propDict.get("archive_delta") is not None:
-            aDelta = ast.literal_eval(propDict.get("archive_delta"))
-
-        if propDict.get("archive_delta_percent") == "false":
-            aDeltaPerc = False
-        elif (propDict.get("archive_delta") == "0"
               or propDict.get("archive_delta") == "0.0"
               or propDict.get("archive_delta") == 0
               or propDict.get("archive_delta") == 0.0):
+            aDelta = False
+        elif propDict.get("archive_delta") is not None:
+            aDelta = propDict.get("archive_delta")
+
+        if propDict.get("archive_delta_percent") == "false":
+            aDeltaPerc = False
+        elif (propDict.get("archive_delta_percent") == "0"
+              or propDict.get("archive_delta_percent") == "0.0"
+              or propDict.get("archive_delta_percent") == 0
+              or propDict.get("archive_delta_percent") == 0.0):
             aDeltaPerc = False
         elif propDict.get("archive_delta_percent") is not None:
-            aDeltaPerc = ast.literal_eval(
-                propDict.get("archive_delta_percent"))
+            aDeltaPerc = propDict.get("archive_delta_percent")
 
         monitor = self._recorder._createMonitor(
             property, timeTriggerOmg, aDelta, aDeltaPerc, buffer)
@@ -1470,21 +1466,20 @@ class property_characteristics_xml_objectifier(property_characteristics):
             propDict = {}
 
             propDict['name'] = myPro._get_name()
-            propDict['timestamp'] = myPro.get_sync()[1].timeStamp
 
             try:
-                propDict['archive_priority'] = propertyCDB.firstChild.getAttribute(
-                    "archive_priority").decode()
+                propDict['archive_priority'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    "archive_priority").decode())
             except Exception:
                 propDict['archive_priority'] = None
             try:
-                propDict['archive_min_int'] = propertyCDB.firstChild.getAttribute(
-                    "archive_min_int").decode()
+                propDict['archive_min_int'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    "archive_min_int").decode())
             except Exception:
                 propDict['archive_min_int'] = None
             try:
-                propDict['archive_max_int'] = propertyCDB.firstChild.getAttribute(
-                    "archive_max_int").decode()
+                propDict['archive_max_int'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    "archive_max_int").decode())
             except Exception:
                 propDict['archive_max_int'] = None
             try:
@@ -1503,18 +1498,18 @@ class property_characteristics_xml_objectifier(property_characteristics):
             except Exception:
                 propDict['archive_mechanism'] = None
             try:
-                propDict['archive_delta'] = propertyCDB.firstChild.getAttribute(
-                    'archive_delta').decode()
+                propDict['archive_delta'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'archive_delta').decode())
             except Exception:
                 propDict['archive_delta'] = None
             try:
-                propDict['archive_delta_percent'] = propertyCDB.firstChild.getAttribute(
-                    'archive_delta_percent').decode()
+                propDict['archive_delta_percent'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'archive_delta_percent').decode())
             except Exception:
                 propDict['archive_delta_percent'] = None
             try:
-                defaultTime = propertyCDB.firstChild.getAttribute(
-                    'default_timer_trig').decode()
+                defaultTime = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'default_timer_trig').decode())
                 # make sure that we handle 0s or negative values, as this is
                 # important
                 if defaultTime <= 0.0:
@@ -1524,8 +1519,8 @@ class property_characteristics_xml_objectifier(property_characteristics):
             except Exception:
                 propDict['default_timer_trig'] = None
             try:
-                propDict['default_value'] = propertyCDB.firstChild.getAttribute(
-                    'default_value').decode()
+                propDict['default_value'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'default_value').decode())
             except Exception:
                 propDict['default_value'] = None
             try:
@@ -1539,33 +1534,33 @@ class property_characteristics_xml_objectifier(property_characteristics):
             except Exception:
                 propDict['format'] = None
             try:
-                propDict['graph_max'] = propertyCDB.firstChild.getAttribute(
-                    'graph_max').decode()
+                propDict['graph_max'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'graph_max').decode())
             except Exception:
                 propDict['graph_max'] = None
             try:
-                propDict['graph_min'] = propertyCDB.firstChild.getAttribute(
-                    'graph_min').decode()
+                propDict['graph_min'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'graph_min').decode())
             except Exception:
                 propDict['graph_min'] = None
             try:
-                propDict['min_delta_trig'] = propertyCDB.firstChild.getAttribute(
-                    'min_delta_trig').decode()
+                propDict['min_delta_trig'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'min_delta_trig').decode())
             except Exception:
                 propDict['min_delta_trig'] = None
             try:
-                propDict['min_step'] = propertyCDB.firstChild.getAttribute(
-                    'min_step').decode()
+                propDict['min_step'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'min_step').decode())
             except Exception:
                 propDict['min_step'] = None
             try:
-                propDict['min_timer_trig'] = propertyCDB.firstChild.getAttribute(
-                    'min_timer_trig').decode()
+                propDict['min_timer_trig'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'min_timer_trig').decode())
             except Exception:
                 propDict['min_timer_trig'] = None
             try:
-                propDict['resolution'] = propertyCDB.firstChild.getAttribute(
-                    'resolution').decode()
+                propDict['resolution'] = ast.literal_eval(propertyCDB.firstChild.getAttribute(
+                    'resolution').decode())
             except Exception:
                 propDict['resolution'] = None
             try:
