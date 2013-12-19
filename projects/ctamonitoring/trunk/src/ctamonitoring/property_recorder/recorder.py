@@ -1213,8 +1213,13 @@ class property_characteristics():
                 except Exception:
                     propDict['default_timer_trig'] = None
                 try:
-                    propDict['default_value'] = ast.literal_eval(myPro.get_characteristic_by_name(
-                        'default_value').value())
+                    val = myPro.get_characteristic_by_name('default_value').value()
+                    #could be string or numerical value. First try if numerical
+                    try: 
+                        propDict['default_value'] = ast.literal_eval(val)
+                    #If not will be string
+                    except Exception:
+                        propDict['default_value'] = val
                 except Exception:
                     propDict['default_value'] = None
                 try:
