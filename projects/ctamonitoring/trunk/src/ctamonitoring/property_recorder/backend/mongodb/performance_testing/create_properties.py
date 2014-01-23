@@ -29,8 +29,8 @@ __version__ = '$Revision$'.split()[1]
 __date__ = '2014-01-06'
 __updated__ = '$LastChangedDate$'.split()[1]
 
-host = "zoja"
-seed = None
+HOST = "zoja"
+SEED = None
 #systems = (("SST", 40, 1000), ("MST", 50, 1500), ("LST", 10, 2000),
 #           ("SYSTEM_A", 100, 50), ("SYSTEM_B", 10, 250), ("SYSTEM_C", 5, 500),
 #           (None, 1, 5000))
@@ -96,7 +96,8 @@ def create_systems(systems_collection,
                                          "property type" : "DOUBLE",
                                          "property_type_desc" : None,
                                          "meta" : meta,
-                                         "lock" : None
+                                         "lock" : None,
+                                         "bin size" : 60
                                         }
                     else:
                         property_desc = {
@@ -106,16 +107,18 @@ def create_systems(systems_collection,
                                          "property type" : "DOUBLE",
                                          "property_type_desc" : None,
                                          "meta" : meta,
-                                         "lock" : None
+                                         "lock" : None,
+                                         "bin size" : 60
                                         }
                     properties_collection.insert(property_desc)
 
 
 if __name__ == '__main__':
-    randseed(seed)
+    randseed(SEED)
     
-    client = MongoClient(host)
+    client = MongoClient(HOST)
     db = client.monitest
+    chunks_collection = db.chunks
     properties_collection = db.properties
     systems_collection = db.systems
     
@@ -129,6 +132,12 @@ if __name__ == '__main__':
                                         ("component name", pymongo.ASCENDING),
                                         ("property name", pymongo.ASCENDING)
                                        ])
+    systems_collection.ensure_index([("system name", pymongo.ASCENDING)],
+                                    unique = True)
+    chunks_collection.ensure_index([
+                                    ("pid", pymongo.ASCENDING),
+                                    ("bin", pymongo.ASCENDING)
+                                   ])
     
     for system_type, n_systems, n_properties_per_system in systems:
         if n_systems and n_properties_per_system:
