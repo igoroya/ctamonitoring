@@ -36,6 +36,7 @@ from optparse import Option, OptionParser, OptionValueError
 from pymongo import MongoClient
 from random import seed as randseed
 from random import uniform
+from random import random
 from threading import Thread
 from time import sleep
 
@@ -175,7 +176,8 @@ def acquire_systems(sys_col, sys_locks, systems, props_col, n_params):
             s = sys_col.find_and_modify({"system name" : system,
                                          "$or" : [{"lock" : {"$exists" : False}},
                                                   {"lock" : None}]},
-                                        {"$set" : {"lock" : lock_tm}})
+                                        {"$set" : {"lock" : lock_tm}},
+                                        sort=[("random",pymongo.ASCENDING)])
             if not s:
                 raise RuntimeError("%s is not available" % (system,))
             sys_locks.append({"name" : system, "tm" : lock_tm})
@@ -185,7 +187,8 @@ def acquire_systems(sys_col, sys_locks, systems, props_col, n_params):
             print "locking system..."
             s = sys_col.find_and_modify({"$or" : [{"lock" : {"$exists" : False}},
                                                   {"lock" : None}]},
-                                        {"$set" : {"lock" : lock_tm}})
+                                        {"$set" : {"lock" : lock_tm}},
+                                        sort=[("random",pymongo.ASCENDING)])
             if not s and not sys_locks:
                 raise RuntimeError("no system available")
             if not s:
@@ -220,7 +223,7 @@ def acquire_properties(sys_locks, props_col, begin, chunks_col, bin_size):
             lst_end = (begin -
                        timedelta(seconds = uniform(0, period)))
             chunks = chunks_col.find({"pid" : pid}) \
-                               .sort("begin", pymongo.DESCENDING) \
+                               .sort("bin", pymongo.DESCENDING) \
                                .limit(1)
             if chunks.count():
                 chunk = chunks.next()
@@ -262,14 +265,16 @@ def release_systems(sys_col, sys_locks):
             s = sys_col.find_and_modify({"system name" : sys_lock["name"],
                                          "$and" : [{"lock" : {"$exists" : True}},
                                                    {"lock" : sys_lock["tm"]}]},
-                                        {"$set" : {"lock" : None}})
+                                        {"$set" : {"lock" : None,
+                                                   "random" : random()}})
         else:
             print "releasing independent components"
             s = sys_col.find_and_modify({"$or" : [{"system name" : {"$exists" : False}},
                                                   {"system name" : None}],
                                          "$and" : [{"lock" : {"$exists" : True}},
                                                    {"lock" : sys_lock["tm"]}]},
-                                        {"$set" : {"lock" : None}})
+                                        {"$set" : {"lock" : None,
+                                                   "random" : random()}})
         if not s: sys_not_locked.append(sys_lock["name"])
     if sys_not_locked:
         if len(sys_not_locked) > 1:
@@ -411,6 +416,7 @@ def main(argv = None):
                                 if not db_inserter.is_alive():
                                     raise
                     bin += bin_size
+                queue.join()
         finally:
             print "-" * 40
             release_systems(systems_collection, system_locks)

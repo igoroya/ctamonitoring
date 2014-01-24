@@ -20,6 +20,7 @@ from random import seed as randseed
 from random import choice as randchoice
 from random import randint
 from random import uniform
+from random import random
 import pymongo
 from pymongo import MongoClient
 
@@ -64,11 +65,13 @@ def create_systems(systems_collection,
             system_desc = {
                            "system name" : "%s%d" % (system_type, sys_id),
                            "system type" : system_type,
-                           "lock" : None
+                           "lock" : None,
+                           "random" : random()
                           }
         else:
             system_desc = {
-                           "lock" : None
+                           "lock" : None,
+                           "random" : random()
                           }
         systems_collection.insert(system_desc)
         for comp_type_id, comp_type_desc in enumerate(comp_type_descriptions, 1):
@@ -121,6 +124,7 @@ if __name__ == '__main__':
     chunks_collection = db.chunks
     properties_collection = db.properties
     systems_collection = db.systems
+    statistics_collection = db.statistics
     
     if systems_collection.count():
         raise RuntimeError("systems already exist")
@@ -138,6 +142,9 @@ if __name__ == '__main__':
                                     ("pid", pymongo.ASCENDING),
                                     ("bin", pymongo.ASCENDING)
                                    ])
+    statistics_collection.ensure_index([
+                                        ("bin", pymongo.ASCENDING)
+                                       ])
     
     for system_type, n_systems, n_properties_per_system in systems:
         if n_systems and n_properties_per_system:
