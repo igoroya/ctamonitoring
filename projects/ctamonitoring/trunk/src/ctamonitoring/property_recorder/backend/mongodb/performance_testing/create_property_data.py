@@ -13,22 +13,27 @@ It defines classes_and_methods
 @version: $Id$
 @change: $LastChangedDate$
 @change: $LastChangedBy$
+@requires: math
 @requires: os
 @requires: pymongo
 @requires: sys
+@requires: threading
+@requires: time
 @requires: copy
 @requires: datetime
 @requires: optparse
 @requires: Queue
 @requires: random
-@requires: threading
 @requires: time
 '''
 
+import math
 import os
 import pymongo
 import Queue
 import sys
+import threading
+import time
 
 from copy import copy
 from datetime import datetime, timedelta
@@ -37,7 +42,6 @@ from pymongo import MongoClient
 from random import seed as randseed
 from random import uniform
 from random import random
-from threading import Thread
 from time import sleep
 
 
@@ -77,23 +81,95 @@ class Property(object):
 class Statistics(object):
     def __init__(self,
                  bin = None, nxt_bin = None, begin = None, end = None,
-                 systems = [], n_params = 0,
-                 n_bins = 0, n_chunks = 0, n_data_points = 0):
+                 systems = [], n_props = 0,
+                 n_bins = 0, n_chunks = 0, n_data_points = 0,
+                 realtime = False):
         self.bin = bin
         self.nxt_bin = nxt_bin
         self.begin = begin
         self.end = end
         self.systems = systems
-        self.n_params = n_params
+        self.n_props = n_props
         self.n_bins = n_bins
         self.n_chunks = n_chunks
         self.n_data_points = n_data_points
+        self.realtime = realtime
 
 
-class DBInserter(Thread):
+def get_total_seconds(td):
+    return ((td.microseconds + (td.seconds + td.days * 24L * 3600L) * 10**6L) /
+            (10**6L * 1.))
+
+
+def get_floor(tm, td):
+    tmp = tm - datetime.min
+    tmp = timedelta(seconds = ((get_total_seconds(tmp) //
+                                get_total_seconds(td)) *
+                               get_total_seconds(td)))
+    return datetime.min + tmp
+
+
+class DBScheduler(threading.Thread):
+    def __init__(self,
+                 queue_out, queue_in, bin_size):
+        super(DBScheduler, self).__init__()
+        self._queue_out = queue_out
+        self._queue_in = queue_in
+        self._bin_size = bin_size
+        self._do_flush = threading.Event()
+        self._do_flush.clear()
+        self.daemon = True
+        self.start()
+    
+    def flush(self):
+        self._do_flush.set()
+    
+    def _flush(self, n):
+        if n:
+            self._queue_out.join()
+            for i in range(n):
+                self._queue_in.task_done()
+    
+    def run(self):
+        lst_bin = None
+        n_chunks = 0
+        nxt_tm = None
+        while True:
+            while True:
+                try:
+                    bin, chunk, n_dp = self._queue_in.get(block = True,
+                                                          timeout = 10)
+                    break
+                except Queue.Empty:
+                    if self._do_flush.is_set():
+                        self._flush(n_chunks)
+                        n_chunks = 0
+                        self._do_flush.clear()
+            if lst_bin != bin:
+                if nxt_tm is None:
+                    now = datetime.now()
+                    nxt_tm = get_floor(now, self._bin_size)
+                    if now > nxt_tm:
+                        nxt_tm += self._bin_size
+                else:
+                    self._flush(n_chunks)
+                    n_chunks = 0
+                    now = datetime.now()
+                if now < nxt_tm:
+                    #print "it's now %s... sleep until %s" % (str(now),
+                    #                                         str(nxt_tm))
+                    time.sleep(get_total_seconds(nxt_tm - now))
+                #else: print "it's now %s" % (str(now),)
+                nxt_tm += self._bin_size
+                lst_bin = bin
+            self._queue_out.put((bin, chunk, n_dp), block = True)
+            n_chunks += 1
+
+
+class DBInserter(threading.Thread):
     def __init__(self,
                  stats_col, chunks_col,
-                 stats, queue):
+                 stats, queue_in):
         super(DBInserter, self).__init__()
         self._stats_col = stats_col
         self._chunks_col = chunks_col
@@ -101,7 +177,7 @@ class DBInserter(Thread):
         self._stats.n_bins = 0
         self._stats.n_chunks = 0
         self._stats.n_data_points = 0
-        self._queue = queue
+        self._queue_in = queue_in
         self._chunks = []
         self._n_bins = -1
         self._n_data_points = 0
@@ -110,20 +186,18 @@ class DBInserter(Thread):
         self.start()
     
     def _send_stats(self):
-        td = self._stats.end - self._stats.begin
-        td = ((td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) /
-              (10**6 * 1.))
         stats = {
                  "bin" : self._stats.bin,
                  "begin" : self._stats.begin,
                  "end" : self._stats.end,
-                 "delta_t" : td,
+                 "delta_t" : get_total_seconds(self._stats.end -
+                                               self._stats.begin),
                  "systems" : self._stats.systems,
-                 "n_params" : self._stats.n_params,
+                 "n_params" : self._stats.n_props,
                  "n_bins" : self._stats.n_bins,
                  "n_chunks" : self._stats.n_chunks,
                  "n_data_points" : self._stats.n_data_points,
-                 "realtime" : False
+                 "realtime" : self._stats.realtime
               }
         #print stats
         self._stats_col.insert(stats)
@@ -134,7 +208,7 @@ class DBInserter(Thread):
     def _send_chunks(self):
         self._chunks_col.insert(self._chunks)
         for i in range(len(self._chunks)):
-            self._queue.task_done()
+            self._queue_in.task_done()
         self._stats.n_bins += self._n_bins
         self._n_bins = 0
         self._stats.n_chunks += len(self._chunks)
@@ -147,7 +221,7 @@ class DBInserter(Thread):
         lst_bin = None
         while True:
             try:
-                bin, chunk, n_dp = self._queue.get(block = not self._chunks)
+                bin, chunk, n_dp = self._queue_in.get(block = not self._chunks)
                 if lst_bin != bin:
                     self._n_bins += 1
                     if bin == bin.replace(minute = 0, second = 0, microsecond = 0):
@@ -168,7 +242,7 @@ class DBInserter(Thread):
                 self._send_chunks()
 
 
-def acquire_systems(sys_col, sys_locks, systems, props_col, n_params):
+def acquire_systems(sys_col, sys_locks, systems, props_col, n_props):
     lock_tm = datetime.now()
     if(systems):
         for system in systems:
@@ -181,9 +255,9 @@ def acquire_systems(sys_col, sys_locks, systems, props_col, n_params):
             if not s:
                 raise RuntimeError("%s is not available" % (system,))
             sys_locks.append({"name" : system, "tm" : lock_tm})
-    elif n_params:
+    elif n_props:
         n_total = 0
-        while n_total < n_params:
+        while n_total < n_props:
             print "locking system..."
             s = sys_col.find_and_modify({"$or" : [{"lock" : {"$exists" : False}},
                                                   {"lock" : None}]},
@@ -312,8 +386,8 @@ def main(argv = None):
         parser.add_option("-s", "--system", dest = "systems", action = "append",
                           help="system(s) to create data for [default: none]",
                           metavar = "NAME")
-        parser.add_option("-n", "--nparams", dest = "n_params", type = "int",
-                          help="approx. integral number of parameters to "
+        parser.add_option("-n", "--nprops", dest = "n_props", type = "int",
+                          help="approx. integral number of properties to "
                           "create data for [default: %default] if, "
                           "no system is specified")
         parser.add_option("-b", "--begin", dest = "begin", type ="datetime",
@@ -326,12 +400,15 @@ def main(argv = None):
         parser.add_option("--binsize", dest = "bin_size", type = "int",
                           help = "bin size in seconds [default: %default]",
                           metavar = "SECONDS")
+        parser.add_option("--realtime", dest = "realtime", action="store_true",
+                          help = "run data generation in realtime")
         
         # set defaults
         parser.set_defaults(host = "zoja", port = 27017,
-                            n_params = 15000,
+                            n_props = 15000,
                             begin = "2013-10-01", days = 1,
-                            bin_size = 60)
+                            bin_size = 60,
+                            realtime = False)
         
         # process options
         (opts, args) = parser.parse_args(argv)
@@ -344,10 +421,11 @@ def main(argv = None):
         if opts.systems:
             print "systems = %s" % (", ".join(opts.systems),)
         else:
-            print "nparams = %d" % (opts.n_params,)
+            print "nprops = %d" % (opts.n_props,)
         print "begin = %s" % (str(opts.begin),)
         print "end = %s" % (str(end),)
         print "binsize = %s" % (str(bin_size),)
+        if opts.realtime: print "realtime generation"
         
         # connect to db server, db and collections
         client = MongoClient(opts.host, opts.port)
@@ -362,7 +440,7 @@ def main(argv = None):
             # prepare data creation
             print "-" * 40
             acquire_systems(systems_collection, system_locks,
-                            opts.systems, properties_collection, opts.n_params)
+                            opts.systems, properties_collection, opts.n_props)
             properties, first_bin = acquire_properties(system_locks,
                                                        properties_collection,
                                                        opts.begin,
@@ -370,22 +448,34 @@ def main(argv = None):
                                                        bin_size)
             if properties:
                 print "-" * 40
-                print "nparams = %d" % (len(properties),)
+                print "nprops = %d" % (len(properties),)
                 print "firstbin = %s" % (str(first_bin),)
                 bin = first_bin
-                #end = opts.begin + timedelta(hours = 3)
+                #end = opts.begin + timedelta(hours = 1)
+                #end = first_bin + timedelta(hours = 9)
                 statistics = Statistics()
                 statistics.systems = [s["name"] for s in system_locks]
-                statistics.n_params = len(properties)
+                statistics.n_props = len(properties)
+                statistics.realtime = opts.realtime
                 queue = Queue.Queue(3 * len(properties))
-                db_inserter = DBInserter(statistics_collection,
-                                         chunks_collection,
-                                         statistics, queue)
+                wait = 10
+                if not opts.realtime:
+                    db_inserter = DBInserter(statistics_collection,
+                                             chunks_collection,
+                                             statistics, queue)
+                else:
+                    queue_out = Queue.Queue(math.ceil(1.1 * len(properties)))
+                    db_scheduler = DBScheduler(queue_out, queue, bin_size)
+                    db_inserter = DBInserter(statistics_collection,
+                                             chunks_collection,
+                                             statistics, queue_out)
+                    wait = max(wait, math.ceil(1.1 *
+                                               get_total_seconds(bin_size)))
                 while bin < end:
                     #print str(bin)
                     for property in properties:
                         if property.nxt_bin > bin:
-                            print "oups"
+                            #print "oups"
                             continue
                         property.nxt_bin = bin + bin_size
                         values = []
@@ -397,7 +487,7 @@ def main(argv = None):
                             val = uniform(property.min, property.max)
                             values.append({"t" : t, "val" : val})
                         if not values:
-                            print "oups"
+                            #print "oups"
                             continue
                         property.lst_end = values[-1]["t"]
                         chunk = {
@@ -410,12 +500,19 @@ def main(argv = None):
                         while True:
                             try:
                                 queue.put((bin, chunk, len(values)),
-                                          block = True)
+                                          block = True, timeout = wait)
                                 break
                             except Queue.Full:
+                                if (opts.realtime and
+                                    not db_scheduler.is_alive()):
+                                    raise
                                 if not db_inserter.is_alive():
                                     raise
                     bin += bin_size
+                print "-" * 40
+                print "flushing..."
+                if opts.realtime:
+                    db_scheduler.flush()
                 queue.join()
         finally:
             print "-" * 40
