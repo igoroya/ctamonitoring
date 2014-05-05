@@ -182,13 +182,21 @@ class Buffer(ctamonitoring.property_recorder.backend.dummy.registry.Buffer):
 
 
 class _Worker(Thread):
-    def __init__(self, log, fifo, uri, chunks):
+    def __init__(self, uri, chunks, chunk_size, fifo, log):
         log.debug("creating mongodb worker")
         super(_Worker, self).__init__()
-        self._log = log
-        self._fifo = fifo
         self._uri = uri
         self._chunks = chunks
+        if chunk_size is None:
+            self._timeout = None
+        else:
+            self._timeout = (chunk_size.days * 86400. +
+                             chunk_size.seconds +
+                             chunk_size.microseconds * 1e-6) / 2
+        if self._timeout < 0.1:  # don't use timeouts less than 100ms
+            self._timeout = 0.1
+        self._fifo = fifo
+        self._log = log
         self._canceled = Event()
         self._canceled.clear()
     
@@ -196,7 +204,7 @@ class _Worker(Thread):
         try:
             while not self._canceled.is_set():
                 try:
-                    chunks = self._fifo.get(n = 10)
+                    chunks = self._fifo.get(n = 10, timeout = self._timeout)
                 except InterruptedException:
                     self._log.exception("request to cancel mongodb worker")
                     break
@@ -210,14 +218,14 @@ class _Worker(Thread):
                         ids = self._chunks.insert(chunks[begin:])
                     except AutoReconnect:
                         begin += len(ids)
-                        self._log.exception("still %d chunks to insert " +
-                                            "into mongodb (%s)... keep trying",
-                                            self._uri)
+                        self._log.exception(("still %d chunks to insert " +
+                                             "into mongodb (%s)... keep trying") %
+                                            (len(chunks) - begin, self._uri))
                     except:
                         begin += len(ids)
-                        self._log.exception("still %d chunks to insert " +
-                                            "into mongodb (%s)... keep trying",
-                                            self._uri)
+                        self._log.exception(("still %d chunks to insert " +
+                                            "into mongodb (%s)... keep trying") %
+                                            (len(chunks) - begin, self._uri))
                         self._log.warn("skipping document: " +
                                        str(chunks[begin]))
                         begin += 1
@@ -318,7 +326,8 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
         self._fifo = RingBuffer(fifo_size)
         self._workers = [] # keep this the last class member variable in ctor
         for _ in range(n_workers):
-            worker = _Worker(self._log, self._fifo, uri, self._chunks)
+            worker = _Worker(uri, self._chunks,
+                             self._chunk_size, self._fifo, self._log)
             worker.daemon = worker_is_daemon
             worker.start()
             self._workers.append(worker)
@@ -376,14 +385,17 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
         # we actually don't care too much here what parameters are given
         # however, component name and property name are the main characteristics
         # to identify a property so we will check these
-        self._check_name(component_name, "component name")
-        self._check_name(property_name, "property name")
-        property_desc = {"component name" : component_name,
-                         "component type" : component_type,
-                         "property name" : property_name,
-                         "property type" : str(property_type),
+        self._check_name(component_name, "component_name")
+        self._check_name(property_name, "property_name")
+        property_desc = {"component_name" : component_name,
+                         "component_type" : component_type,
+                         "property_name" : property_name,
+                         "property_type" : str(property_type),
                          "property_type_desc" : property_type_desc,
-                         "meta" : meta}
+                         "meta" : meta,
+                         "chunk_size" : (chunk_size.days * 86400. +
+                                         chunk_size.seconds +
+                                         chunk_size.microseconds * 1e-6)}
         tmp = self._properties.find_and_modify(query=property_desc,
                                                update=property_desc,
                                                upsert=True, new=True)
