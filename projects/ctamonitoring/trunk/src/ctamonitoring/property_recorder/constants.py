@@ -30,7 +30,7 @@ RWULONGSEQ_NP_REP_ID = "IDL:alma/ACS/RWuLongSeq:1.0"
 # NOTE: longLongSeq seems to be unsupported in ACS
 ROLONGLONG_NP_REP_ID = "IDL:alma/ACS/ROlongLong:1.0"
 RWLONGLONG_NP_REP_ID = "IDL:alma/ACS/RWlongLong:1.0"
-ROLONGLONGSEQ_NP_REP_ID = "IDL:alma/ACS/ROlogLongSeq:1.0"
+ROLONGLONGSEQ_NP_REP_ID = "IDL:alma/ACS/ROlongLongSeq:1.0"
 RWLONGLONGSEQ_NP_REP_ID = "IDL:alma/ACS/RWlongLongSeq:1.0"
 ROULONGLONG_NP_REP_ID = "IDL:alma/ACS/ROuLongLong:1.0"
 RWULONGLONG_NP_REP_ID = "IDL:alma/ACS/RWuLongLong:1.0"

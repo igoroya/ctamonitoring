@@ -1338,12 +1338,24 @@ class property_characteristics():
                             "Enum states cannot be read, use the int representation")
 
                 try:         
-                    buffer = self.__registry.register(component_name=self._component._get_name(),
+                    buffer = self.__registry.register(component_name = self._component._get_name(),
                                        component_type = self._component._NP_RepositoryId,
                                        property_name = myPro._get_name(),
                                        property_type = propertyType,
                                        property_type_desc = enumStates, 
                                        **propDict) 
+                except UserWarning: 
+                    self._logger.logWarning(
+                        "Warning of buffer being used received, forcing in")
+                    buffer = self.__registry.register(component_name = self._component._get_name(),
+                                       component_type = self._component._NP_RepositoryId,
+                                       property_name = myPro._get_name(),
+                                       property_type = propertyType,
+                                       property_type_desc = enumStates, 
+                                       force = True,
+                                       **propDict) 
+                    # @TODO:Does it make sense to raise an alarm here? 
+                    
                 except Exception:
                     self._logger.logWarning(
                         "could not create buffer, skipping")
