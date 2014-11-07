@@ -393,9 +393,9 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
                          "property_type" : str(property_type),
                          "property_type_desc" : property_type_desc,
                          "meta" : meta,
-                         "chunk_size" : (chunk_size.days * 86400. +
-                                         chunk_size.seconds +
-                                         chunk_size.microseconds * 1e-6)}
+                         "chunk_size" : (self._chunk_size.days * 86400. +
+                                         self._chunk_size.seconds +
+                                         self._chunk_size.microseconds * 1e-6)}
         tmp = self._properties.find_and_modify(query=property_desc,
                                                update=property_desc,
                                                upsert=True, new=True)

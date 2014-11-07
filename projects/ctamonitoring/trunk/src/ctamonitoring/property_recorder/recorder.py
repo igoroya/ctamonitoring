@@ -1357,8 +1357,10 @@ class property_characteristics():
                     # @TODO:Does it make sense to raise an alarm here? 
                     
                 except Exception:
+                    self._logger.logWarning(str(Exception))
                     self._logger.logWarning(
                         "could not create buffer, skipping")
+                    
                 else:
                     self._createMonitor(myPro, propDict, buffer)
                 # Creating monitors
