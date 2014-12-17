@@ -1352,6 +1352,7 @@ class property_characteristics():
                                        property_name = myPro._get_name(),
                                        property_type = propertyType,
                                        property_type_desc = enumStates, 
+                                       disable = False, 
                                        force = True,
                                        **propDict) 
                     # @TODO:Does it make sense to raise an alarm here? 
