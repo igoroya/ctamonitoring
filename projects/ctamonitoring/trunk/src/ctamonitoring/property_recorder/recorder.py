@@ -1366,8 +1366,8 @@ class property_characteristics():
                     
                     try: 
                         self._createMonitor(myPro, propDict, buffer)
-                    except Exception2:     
-                         self._logger.logWarning(str(Exception2))
+                    except Exception:     
+                         self._logger.logWarning(str(Exception))
                          self._logger.logWarning(
                         "could not create monitor, skipping")
                 # Creating monitors
