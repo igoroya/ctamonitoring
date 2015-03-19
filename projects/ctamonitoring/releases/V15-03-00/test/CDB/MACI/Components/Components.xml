@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<Components  xmlns="urn:schemas-cosylab-com:Components:1.0"
+       xmlns:cdb="urn:schemas-cosylab-com:CDB:1.0" 
+       xmlns:baci="urn:schemas-cosylab-com:BACI:1.0" 
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+	 <_ Name="logRecorder"
+         Code="ctamonitoring.property_recorder.standalone"
+         Type="IDL:cta/actl/PropertyRecorder:1.0"
+         Container="pyContainer"  ImplLang="py" />
+
+	 <_ Name="distributerRecorder1"
+         Code="PropertyRecorderImpl.distributer"
+         Type="IDL:cta/actl/PropertyRecorderDistributer:1.0"
+         Container="pyContainer"  ImplLang="py" />
+         
+     <_ Name="mongoRecorder"
+         Code="ctamonitoring.property_recorder.standalone"
+         Type="IDL:cta/actl/PropertyRecorder:1.0"
+         Container="pyContainer"  ImplLang="py" />
+
+</Components>

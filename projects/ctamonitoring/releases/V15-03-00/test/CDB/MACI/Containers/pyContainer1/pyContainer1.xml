@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<Container 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns="urn:schemas-cosylab-com:Container:1.0" 
+	xmlns:log="urn:schemas-cosylab-com:LoggingConfig:1.0" 
+	ImplLang="py"
+	>
+
+  <Autoload>
+  </Autoload>
+  <DeployInfo Host="localhost" Flags="" KeepAliveTime="50" StartOnDemand="true" />
+  <LoggingConfig 
+           centralizedLogger="Log" 
+           minLogLevel="2" 
+           dispatchPacketSize="10" 
+           immediateDispatchLevel="99">
+  </LoggingConfig>
+
+</Container>
+
