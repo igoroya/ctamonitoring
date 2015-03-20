@@ -2,6 +2,8 @@ from ctamonitoring.property_recorder import recorder
 from ctamonitoring.property_recorder.recorder import STORAGE_TYPE
 
 import threading
+from aetypes import Boolean
+from __builtin__ import str
 
 
 class standalone(recorder.recorder):
@@ -23,6 +25,13 @@ class standalone(recorder.recorder):
         recorder.recorder.__init__(self)
         self._checkThread = self._createComponentFindThread()
         self._checkThread.start()
+        
+        "List of ACS components to use as include, or exclude list"
+        self.__predefinedComponents = []
+        '''If include mode, only the components considered in the scanning. 
+        If false, all the components deployed are considered except those in the list,
+        which will be excluded'''
+        
 
     #-------------------------------------------------------------------------
     def _scanForComps(self):
@@ -56,6 +65,7 @@ class standalone(recorder.recorder):
                 continue
 
         self.getLogger().logInfo("done...")
+        
 
     def _createComponentFindThread(self):
         return standalone.ComponentFindThread(self)
@@ -78,3 +88,5 @@ class standalone(recorder.recorder):
             self._recorderInstance._checkLostComponents()
             # now look for new properties
             self._recorderInstance._scanForComps()
+
+
