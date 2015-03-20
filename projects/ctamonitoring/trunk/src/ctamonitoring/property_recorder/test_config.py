@@ -1,4 +1,4 @@
-__version__ = "$Id: test_config.py 1 2015-01-01 00:40:12Z igoroya $"
+__version__ = "$Id$"
 
 
 '''
@@ -7,9 +7,9 @@ Unit test module for test_config
 @author: igoroya
 @organization: DESY Zeuthen
 @copyright: cta-observatory.org
-@version: $Id: test_config.py 1 2015-01-1 00:40:12Z igoroya $
-@change: $LastChangedDate: 2015-01-1  02:40:12 +0200 (Wed, 25 Sep 2013) $
-@change: $LastChangedBy: igoroya $
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
 '''
 
 

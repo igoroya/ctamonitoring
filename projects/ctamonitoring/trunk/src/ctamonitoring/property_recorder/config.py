@@ -1,4 +1,4 @@
-__version__ = "$Id: config.py 1 2015-01-01 00:40:12Z igoroya $"
+__version__ = "$Id$"
 
 
 '''
@@ -8,9 +8,9 @@ recorder frontend
 @author: igoroya
 @organization: DESY Zeuthen
 @copyright: cta-observatory.org
-@version: $Id: config.py 1 2015-20-3 00:40:12Z igoroya $
-@change: $LastChangedDate: 2015-20-3  02:40:12 +0200 (Wed, 25 Sep 2013) $
-@change: $LastChangedBy: igoroya $
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
 @requires: Enum
 '''
 
