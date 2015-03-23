@@ -10,7 +10,8 @@ Contains some helper classes to be of used in the module
 """
 from ctamonitoring.property_recorder.backend.property_type import PropertyType
 from ctamonitoring.property_recorder import constants
-
+from ctamonitoring.property_recorder.constants import DecodeMethod
+import ast
 
 class PropertyTypeUtil():
 
@@ -126,6 +127,7 @@ class PropertyTypeUtil():
 
         return enumDict
 
+#TODO: Will becme redundant, remove when possible
 class DecodeUtil():
     """
     Holds utilities to decode data from the CDB
@@ -137,3 +139,56 @@ class DecodeUtil():
             return data.decode('utf-8')
         except UnicodeDecodeError:
             return None
+        
+
+
+
+class AttributeDecoder(object):
+    
+    @staticmethod
+    def _decode_none(value):
+        '''
+        This is used with strings that do not need any decoding
+        '''
+        return value
+    
+    @staticmethod
+    def _decode_ast_literal(value):
+        '''
+        This is used with variables that are no strings, that need
+        to be decoded
+        '''
+        return ast.literal_eval(value)
+
+    @staticmethod
+    def _decode_ast_literal_hybrid(value):
+        '''
+        This is used with variables can be strings or numbers
+        '''
+        try: 
+            return AttributeDecoder.decode_ast_literal(value)
+        #If exception then it is a string
+        except Exception:
+            return value
+    @staticmethod
+    def _decode_utf8(value):    
+        '''
+        Returns a Unicode object on success, or None on failure
+        '''
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError:
+            return None
+    @staticmethod
+    def decode_attribute(value, decode_method):
+        '''
+        Picks the correct decoding method
+        Raises an exception when the decoding method is not supported
+        '''
+        if decode_method is DecodeMethod.NONE : AttributeDecoder._decode_none(value)
+        elif decode_method is DecodeMethod.AST_LITERAL : AttributeDecoder._decode_ast_literal(value)
+        elif decode_method is DecodeMethod.AST_LITERAL_HYBRID : AttributeDecoder._decode_ast_literal_hybrid(value)
+        elif decode_method is DecodeMethod.UTF8 : AttributeDecoder._decode_utf8(value)
+        else:  raise ValueError("decode_method is not supported") 
+        
+        

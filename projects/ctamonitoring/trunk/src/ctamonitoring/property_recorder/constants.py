@@ -10,6 +10,10 @@ In particular, those values required in the NP REPOSITORY
 
 """
 
+from enum import Enum
+from collections import namedtuple
+
+
 RECORDER_NP_REP_ID = "IDL:cta/actl/PropertyRecorder:1.0"
 RODOUBLE_NP_REP_ID = "IDL:alma/ACS/ROdouble:1.0"
 RWDOUBLE_NP_REP_ID = "IDL:alma/ACS/RWdouble:1.0"
@@ -49,3 +53,39 @@ ROSTRING_NP_REP_ID = "IDL:alma/ACS/ROstring:1.0"
 RWSTRING_NP_REP_ID = "IDL:alma/ACS/RWstring:1.0"
 ROSTRINGSEQ_NP_REP_ID = "IDL:alma/ACS/ROstringSeq:1.0"
 RWSTRINGSEQ_NP_REP_ID = "IDL:alma/ACS/RWstringSeq:1.0"
+
+
+
+
+DecodeMethod = Enum('NONE', 'AST_LITERAL', 'AST_LITERAL_HYBRID', 'UTF8')
+
+AttributeInfo = namedtuple('name', 'name, decoding, isPositive, yes_synonyms')
+      
+
+
+PROPERTY_ATTRIBUTES = [AttributeInfo('archive_priority', DecodeMethod.AST_LITERAL, False),
+                            AttributeInfo('archive_min_int', DecodeMethod.AST_LITERAL, True),
+                            AttributeInfo('archive_max_int', DecodeMethod.AST_LITERAL, True),
+                            AttributeInfo('archive_suppress', DecodeMethod.AST_LITERAL, False),
+                            AttributeInfo('archive_mechanism', DecodeMethod.NONE, False),
+                            AttributeInfo('archive_delta', DecodeMethod.AST_LITERAL, True),
+                            AttributeInfo('archive_delta_percent', DecodeMethod.AST_LITERAL, True),
+                            AttributeInfo('default_timer_trig', DecodeMethod.AST_LITERAL, True),
+                            AttributeInfo('default_value', DecodeMethod.AST_LITERAL_HYBRID, False),
+                            AttributeInfo('description', DecodeMethod.NONE, False),
+                            AttributeInfo('format', DecodeMethod.NONE, False),
+                            AttributeInfo('graph_max', DecodeMethod.AST_LITERAL, False),
+                            AttributeInfo('graph_min', DecodeMethod.AST_LITERAL, False),
+                            AttributeInfo('min_delta_trig', DecodeMethod.AST_LITERAL, True),
+                            AttributeInfo('min_step', DecodeMethod.AST_LITERAL, True),
+                            AttributeInfo('min_timer_trig', DecodeMethod.AST_LITERAL, True),
+                            AttributeInfo('resolution', DecodeMethod.AST_LITERAL, True),
+                            AttributeInfo('units', DecodeMethod.UTF8, False),
+                            AttributeInfo('type', DecodeMethod.NONE, False),
+                            AttributeInfo('condition', DecodeMethod.NONE, False),
+                            AttributeInfo('bitDescription', DecodeMethod.NONE, False),
+                            AttributeInfo('statesDescription', DecodeMethod.NONE, False),
+                            AttributeInfo('whenCleared', DecodeMethod.NONE, False),
+                            AttributeInfo('whenSet', DecodeMethod.NONE, False),
+                            AttributeInfo('archive_suppress', DecodeMethod.NONE, False, ["yes", "true"]),                
+                            ]

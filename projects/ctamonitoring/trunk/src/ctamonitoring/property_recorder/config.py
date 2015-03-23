@@ -12,11 +12,16 @@ recorder frontend
 @change: $LastChangedDate$
 @change: $LastChangedBy$
 @requires: Enum
+@requires: ast.literal_eval
 '''
 
 
 from ctamonitoring.property_recorder.backend import get_registry_class 
 from enum import Enum
+
+from ctamonitoring.property_recorder.constants import PROPERTY_ATTRIBUTES
+from ctamonitoring.property_recorder.util import AttributeDecoder
+
 
 BackendType = Enum('DUMMY', 'LOG', 'MYSQL', 'MONGODB')
 
@@ -26,8 +31,13 @@ backend_registries[BackendType.LOG] = get_registry_class("log")
 backend_registries[BackendType.MYSQL] = None
 backend_registries[BackendType.MONGODB] = get_registry_class("mongodb")
 
+PropertyPrimitive = Enum('NUMBER', 'STRING')
+
+
+
+
 class RecorderConfig(object):
-    """
+    '''
     Holds the configuration from the property recorder
 
     Attributes:
@@ -52,7 +62,7 @@ class RecorderConfig(object):
     components         --   The include or exclude list, depending on the include_mode,
                             of component represented by their string names
   
-    """
+    '''
     #-------------------------------------------------------------------------
     def __init__(self):
         """
@@ -190,4 +200,66 @@ class RecorderConfig(object):
         self._components = components
     
     
+
+
+#TODO: add a logger?
+class PropertyAttributeHandler(object):
+    '''
+    Gets attributes from a property and creates a map with attribute name, value 
+    '''
+   
+    @staticmethod    
+    def get_prop_attribs(acs_property):
+        attributes = {}
+        for attribute in PROPERTY_ATTRIBUTES:
+            attributes[attribute.name] = PropertyAttributeHandler._process_attribute(attribute, acs_property)
+        return attributes
+            
     
+    
+    @staticmethod          
+    def _getCdbEntry(attribute, acs_property):
+        '''
+        Used with Java and C++ components
+        '''
+        raw_value = acs_property.get_characteristic_by_name(attribute.name).value()
+        return PropertyAttributeHandler._process_attribute(attribute, raw_value)
+    
+    @staticmethod          
+    def _getCdbEntryXmlObjectifier(attribute, acs_property_cdb):
+        '''
+        Used with Python components
+        Would also work with C++ and Java components but the performance is much worse
+        '''  
+        raw_value = acs_property_cdb.firstChild.getAttribute(
+                    attribute.name).decode()
+        return PropertyAttributeHandler._process_attribute(attribute, raw_value)
+    
+    @staticmethod          
+    def _process_attribute(attribute, raw_value):
+        try:
+            value = AttributeDecoder.decode_attribute(raw_value, attribute.decoding)
+        except Exception, e:
+            print str(e)
+            value = None
+        
+        #Check those cases when it has to be positive
+        if (attribute.isPositive) and (value < 0.0):
+            print 'value is  not valid, ignoring entry'
+            value = None
+        
+        #Check those cases when it has to contain specific keyword synonym to yes, true etc
+        if attribute.yes_synonyms is not None:
+            value_lower = value.lower()
+            found =  False  
+            for entry in attribute.yes_synonyms:
+                if value_lower == entry:
+                    found =  True  
+            
+            value = found
+  
+        return value
+    
+    
+           
+                    
