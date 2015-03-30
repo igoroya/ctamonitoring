@@ -25,13 +25,13 @@ from ctamonitoring.property_recorder.util import AttributeDecoder
 
 BackendType = Enum('DUMMY', 'LOG', 'MYSQL', 'MONGODB')
 
+
 backend_registries = {}
 backend_registries[BackendType.DUMMY] = get_registry_class("dummy")
 backend_registries[BackendType.LOG] = get_registry_class("log")
 backend_registries[BackendType.MYSQL] = None
 backend_registries[BackendType.MONGODB] = get_registry_class("mongodb")
 
-PropertyPrimitive = Enum('NUMBER', 'STRING')
 
 
 
@@ -41,8 +41,8 @@ class RecorderConfig(object):
     Holds the configuration from the property recorder
 
     Attributes:
-    default_monitor_rate -- Monitoring rate for those properties
-                            with no CDB entry for the monitoring rate
+    default_timer_trigger -- Monitoring rate for those properties
+                            with no CDB entry for the monitoring period
                             in seconds (default 60 s)
     max_comps            -- Maximum number of components accepted by this
                             property recorder (default 100)
@@ -52,15 +52,15 @@ class RecorderConfig(object):
                             (default 10 s)
     backend_type         -- Enum value of :class:`ctamonitoring.property_recorder.BackendType`  
                             (Default LOG)
-    backend_config       -- Map with configuration parameters for the backend
+    backend_config       -- Dict with configuration parameters for the backend
                             (Default None)
-   `is_include_mode      -- In True, the recorder will only consider the components 
-                            included in list components and reject all the others 
+    is_include_mode      -- If True, the recorder will only consider the components 
+                            included in the list components and reject all the others 
                             (a include list). 
                             If set to False, will consider all the components except
                             those in the list (A exclude list)
-    components         --   The include or exclude list, depending on the include_mode,
-                            of component represented by their string names
+    components         --   The include or exclude list, depending on the value of 
+                            is_include_mode, of component represented by their string names
   
     '''
     #-------------------------------------------------------------------------
@@ -69,7 +69,7 @@ class RecorderConfig(object):
         Initializes the values to those defined as default:
         """
         # 1/min, units in in 100 of ns, OMG time
-        self._default_monitor_rate = 60
+        self._default_timer_trigger = 60
         # will not accept more components if this number is exceeded
         self._max_comps = 100
         # will not accept more components if the total number of props is this
@@ -77,27 +77,27 @@ class RecorderConfig(object):
         self._max_props = 1000
         self._checking_period = 10  # seconds
         self._backend_type = BackendType.LOG
-        self._backend_config = None
+        self.backend_config = None
                 
-        self._is_include_mode = None
+        self._is_include_mode = False
 
-        self._components = []        
+        self._components = set()        
     
    
     @property
-    def default_monitor_rate(self):
+    def default_timer_trigger(self):
         """"
         The monitoring rate in s to be used when no input is provided in the CDB
         
         Raises a ValueError when input type is incorrect or value is negative        
         """
-        return self._default_monitor_rate
-    @default_monitor_rate.setter
-    def default_monitor_rate(self, default_monitor_rate):
-        rate = long(default_monitor_rate)
+        return self._default_timer_trigger
+    @default_timer_trigger.setter
+    def default_timer_trigger(self, default_timer_trigger):
+        rate = long(default_timer_trigger)
         if rate < 1:
             raise ValueError("default_monitoring_rate type must be positive")
-        self._default_monitor_rate = rate
+        self._default_timer_trigger = rate
   
     @property      
     def max_comps(self):
@@ -183,14 +183,14 @@ class RecorderConfig(object):
         raise NotImplementedError("Cannot mutate, components are set by setComponentList")
     
     
-    def setComponentList(self, components):
+    def set_components(self, components):
         """
         Replaces the actual list of components by the provided one.
         
         Throws a TypeError if any of the components in the list is not str
         """
-        if type(components) is not list:
-            raise TypeError("A list of str needs to be provided")
+        if type(components) is not set:
+            raise TypeError("A set of str needs to be provided")
         
         for component in components:
             if type(component) is not str:
@@ -206,16 +206,29 @@ class RecorderConfig(object):
 class PropertyAttributeHandler(object):
     '''
     Gets attributes from a property and creates a map with attribute name, value 
+    
+    acs_property -- the ACS property
+    use_xml_objectifier -- If the XmlObjectifier needs to be used
+                           Note that it is much slower but the only solution
+                           for the Python components
     '''
    
     @staticmethod    
-    def get_prop_attribs(acs_property):
+    def get_prop_attribs_cdb(acs_property, use_xml_objectifier = False):
+        #getEnty = (if use_xml_objectifier PropertyAttributeHandler._getCdbEntryXmlObjectifier else PropertyAttributeHandler._getCdbEntry)
+        
+        if use_xml_objectifier:
+            getEnty = PropertyAttributeHandler._getCdbEntryXmlObjectifier
+        else:
+            getEnty = PropertyAttributeHandler._getCdbEntry
+        
         attributes = {}
         for attribute in PROPERTY_ATTRIBUTES:
-            attributes[attribute.name] = PropertyAttributeHandler._process_attribute(attribute, acs_property)
+            attributes[attribute.name] = getEnty(attribute, acs_property)
+       
+        attributes['name'] = acs_property._get_name()
+        
         return attributes
-            
-    
     
     @staticmethod          
     def _getCdbEntry(attribute, acs_property):
