@@ -1,6 +1,4 @@
 __version__ = "$Id: standalone_recorder.py 1152 2015-03-23 18:03:44Z igoroya $"
-from __builtin__ import bool, str
-
 '''
 Module with all what is related to the configuration holding for the property 
 recorder frontend
@@ -19,11 +17,12 @@ In primary meant for test but may be useful later also to run as an alternative 
 
 import argparse
 import ast
-from pprint import pprint
+#from pprint import pprint
+import pprint
 
 from Acspy.Clients.SimpleClient import PySimpleClient
 from ctamonitoring.property_recorder.config import RecorderConfig
-from ctamonitoring.property_recorder.standalone import FrontEnd
+from ctamonitoring.property_recorder.front_end import FrontEnd
 from ctamonitoring.property_recorder.config import BackendType
 from ctamonitoring.property_recorder.util import EnumUtil
 
@@ -94,12 +93,17 @@ class RecorderParser(object):
                         dest='checking_period', type = long, 
                         help='Period in seconds to check for lost components or new components '
                             '(default 10 s)')
-        argparser.add_argument('--is_include_mode', action = 'store',
-                        dest='is_include_mode', type = bool, 
-                        help='If True, the recorder will only consider the components '
-                            'included in list components and reject all the others '
-                            ', using the provided list with --components as an "include list". '
-                            ' if False, then the provided list is considered as an "exclude list"')
+        argparser.add_argument('--include_mode', dest='is_include_mode', action='store_true',
+                        help='If set the recorder will only consider the components '
+                        'included in list components and reject all the others '
+                        ', using the provided list with --components as an "include list". '
+                        'This is NOT used by default')
+        argparser.add_argument('--exclude_mode', dest='is_include_mode', action='store_false',
+                        help='If set the recorder will the provided list is considered as an "exclude list". '
+                        ', using the provided list with --components as the "exclude list". '
+                        'Used by default')   
+        argparser.set_defaults(is_include_mode=False)
+        
         argparser.add_argument('--components', action = 'store',
                         dest='components', type = list, 
                         help='The include or exclude list, depending on the --is_include_mode value, '
@@ -155,7 +159,7 @@ class RecorderParser(object):
     
         return recorder_config
     
-class standalone_recorder(object):
+class StandaloneRecorder(object):
 
     def __init__(self, recorder_config):
         '''
@@ -164,58 +168,70 @@ class standalone_recorder(object):
         '''
         
         # Create the ACS simple client. This allows the communication with ACS
-        self._my_client = PySimpleClient()
+        self._my_acs_client = PySimpleClient()
        
         self.recorder_config = recorder_config
         #create recorder object 
 
-        self.recorder = FrontEnd(recorder_config, self._my_client)
+        self.recorder = FrontEnd(recorder_config, self._my_acs_client)
         
+        self._my_acs_client.getLogger().info('Property recorder up')
 
     def start(self):
         self.recorder.start_recording()
+        self._my_acs_client.getLogger().info('Recording start')
         
     def stop(self):
         self.recorder.stop_recording()
+        self._my_acs_client.getLogger().info('Recording stop')
 
     def __del__(self):
+        self._my_acs_client.getLogger().info('Switching off property recorder')
         self.stop()
         self.recorder = None
         self.recorder_config = None
-        self.my_client.disconnect()
-        self.my_client = None
+        self._my_acs_client.disconnect()
+        self._my_acs_client = None
 
     def print_config(self):
-        print "Property Recorder Configuration"
-        print "-------------------------------"
-        pprint (vars(self.recorder_config))
-        print "-------------------------------"
-
+        
+        self._my_acs_client.getLogger().debug(
+                'Property Recorder Configuration'
+                '\n--------------------------------------\n' +
+                pprint.pformat(vars(self.recorder_config)) +
+                '\n--------------------------------------')
+        
       
         
 
-    if __name__ == "__main__":
+if __name__ == "__main__":
 
-        parser = RecorderParser()
-        
-        
-        recorder_config = parser.feed_config()
-   
-        
+    #Configure
+    parser = RecorderParser()
+    recorder_config = parser.feed_config()
+
+    #Create a recorder. 
+    recorder = StandaloneRecorder(recorder_config)
     
+    #Show the configuration
+    recorder.print_config()    
+
+    #Start recording
+    recorder.start()
+
+    #Work until user stops
+    try:
+        while True:
+            pass
+    except KeyboardInterrupt:
+        print 'Command to stop the recorder'
         
-    #try:
-    #    while True:
-    #        pass
-    #except KeyboardInterrupt:
-    #    recorder.stop_recording()
-    #    recorder = None
-      
-    
+    finally:
+        recorder.stop()
+        recorder = None
+           
+    print 'Exit application'
     
 
-
-# Script ends
-# ___O:>___
 
 

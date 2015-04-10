@@ -1,6 +1,5 @@
 __version__ = "$Id: test_standalone_recorder.py 1150 2015-03-20 18:31:51Z igoroya $"
 
-
 '''
 Unit test module for test_config
 
@@ -42,7 +41,7 @@ class RecorderParserTest(unittest.TestCase):
                                               "--checking_period", "7",
                                               "--backend_type", "MONGODB",
                                               "--backend_config", "{'database' : 'ctamonitoring'}",
-                                              "--is_include_mode", "True",
+                                              "--include_mode",
                                               "--component_list", "['a', 'b']"]   
         
         
@@ -80,8 +79,8 @@ class RecorderParserTest(unittest.TestCase):
         self.assertEqual(Defaults.is_include_mode, recorder_config.is_include_mode)
         self.assertEqual(Defaults.components, recorder_config.components)
 
-    #test ConfigBackendAction
-    
+          
+        
     
 if __name__ == '__main__':
     unittest.main()
