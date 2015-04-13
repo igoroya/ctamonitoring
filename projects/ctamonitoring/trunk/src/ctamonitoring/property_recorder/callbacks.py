@@ -18,7 +18,7 @@ ArchCBpatternStringRep allows to insert the string representation of a Enum.
 
 #-------------------------------------------------
 import ACS__POA   # Import the Python CORBA stubs for BACI
-from omniORB.CORBA import TRUE
+from omniORB.CORBA import TRUE  # @UnresolvedImport
 from ctamonitoring.property_recorder import constants
 import logging
 #---------------------------------------------------
@@ -43,14 +43,14 @@ class BaseArchCB:
 
     Keyword arguments:
         name         -- of this callback instance
-        buffer       -- buffer from the backend registry
+        backend_buffer       -- buffer from the backend registry
         logger       -- logger to be used
 
     Attributes:
         - status -- Status of the Callback,
                     following acs required states:
                     INIT; WORKING, DONE
-        - buffer -- with the data
+        - backend_buffer -- with the data
         - name   -- Name of the property
 
     Raises:
@@ -59,7 +59,7 @@ class BaseArchCB:
     '''
     #--------------------------------------------------
 
-    def __init__(self, name, buffer, logger):
+    def __init__(self, name, backend_buffer, logger):
         '''
         Constructor.
 
@@ -77,10 +77,10 @@ class BaseArchCB:
 
         # collection where the data should be stored. Expected:
         # deque type. If none is provided, the only local storage is performed
-        if buffer is None:
+        if backend_buffer is None:
             raise ValueError("no archive buffer was provided")
         else:
-            self.buffer = buffer
+            self.backend_buffer = backend_buffer
 
         # If there no logger is provided, then by default I will log into the
         # console
@@ -123,7 +123,10 @@ class BaseArchCB:
                               + str(completion.code))      
         
         #Do not write the value if an exception happened, but notify
-        if completion.type != 0:
+        # TODO: In previous version, completion was always 0 (ACS 12), now it is always 1 (ACS 2014_6). Is this an issue?
+        # It can be reproduced by the Objex monitors. Values seems to be OK.
+        # I assume here that 0 or 1 is OK 
+        if completion.type is (0 or 1):
             self._logger.logWarning('Property: '+ self.name + ' completion type: ' 
                                     + ' type: ' + str(completion.type)
                                     + ' code: '
@@ -131,7 +134,7 @@ class BaseArchCB:
                                     +', data is not stored')           
            
         else:     
-            self.buffer.add(completion.timeStamp, value)
+            self.backend_buffer.add(completion.timeStamp, value)
 
         
         # If in the future we want to take care of completions types and code then:
@@ -145,7 +148,7 @@ class BaseArchCB:
         # Save the value for later use
         completion = None
         # to make pychecker happy
-        desc = None
+        desc = None  # @UnusedVariable
 
         # Set flag.
         self.status = 'WORKING'
@@ -168,7 +171,7 @@ class BaseArchCB:
             Nothing
         '''
         # to make pychecker happy
-        desc = None
+        desc = None  # @UnusedVariable
 
         self._logger.logDebug('Monitor of ' + self.name +
                              ' DONE, value read is: '
@@ -178,13 +181,13 @@ class BaseArchCB:
                              + ' code: ' + str(completion.code))
         
         if completion.type != 0:
-          self._logger.logWarning('Property: '+ self.name + ' completion type: ' 
+            self._logger.logWarning('Property: '+ self.name + ' completion type: ' 
                                     + ' type: ' + str(completion.type)
                                     + ' code: '
                                     + str(completion.code)
                                     +', data is not stored')   
         else:     
-            self.buffer.add(completion.timeStamp, value)
+            self.backend_buffer.add(completion.timeStamp, value)
       
         # If in the future we want to take care of completions types and code then:
         # self.buffer.add(completion.timeStamp,  value, completion.type
@@ -193,9 +196,9 @@ class BaseArchCB:
         self.completion = completion
 
       
-        self.buffer.flush()  # Done with the monitor so flush the data
+        self.backend_buffer.flush()  # Done with the monitor so flush the data
       
-        self.buffer = None  #TODO: with the = Non then there is no need to call flush --> Check
+        self.backend_buffer = None  #TODO: with the = Non then there is no need to call flush --> Check
         # Set flags.
         self.status = 'DONE'
     #---------------------------------------------------
@@ -213,8 +216,8 @@ class BaseArchCB:
         Raises: Nothing
         '''
         # to make pychecker happy
-        time_to_transmit = None
-        desc = None
+        time_to_transmit = None  # @UnusedVariable
+        desc = None  # @UnusedVariable
         return TRUE
     #------------------------------------------------
 
@@ -228,46 +231,46 @@ class BaseArchCB:
 
         Raises: Nothing
         '''
-        return self.buffer[-1]
-     #-------------------------------------------------
+        return self.backend_buffer[-1]
+    #-------------------------------------------------
 
 
-class ArchCBlong(BaseArchCB, ACS__POA.CBlong):
+class ArchCBlong(BaseArchCB, ACS__POA.CBlong):  # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBlong
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #----------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #--------------------------------------------------
 
 
-class ArchCBlongSeq(BaseArchCB, ACS__POA.CBlongSeq):
+class ArchCBlongSeq(BaseArchCB, ACS__POA.CBlongSeq): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBlongSeq
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer -- is assumed a list-type object with enum-type
+    backend_buffer -- is assumed a list-type object with enum-type
                     entries with: Property name (Component_Property)
                     |  value   |   timestamp   |
                     completion (value of the completion? OK or BAD enum)
     logger       -- logger to be use
     '''  # ----------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
@@ -276,11 +279,11 @@ class ArchCBlongSeq(BaseArchCB, ACS__POA.CBlongSeq):
 
         Raises: Nothing
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #--------------------------------------------------------
 
 
-class ArchCBuLong(BaseArchCB, ACS__POA.CBuLong):
+class ArchCBuLong(BaseArchCB, ACS__POA.CBuLong): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBuLong
@@ -294,165 +297,165 @@ class ArchCBuLong(BaseArchCB, ACS__POA.CBuLong):
     logger       -- logger to be use
     '''  # ----------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #--------------------------------------------------------
 
 
-class ArchCBuLongSeq(BaseArchCB, ACS__POA.CBuLongSeq):
+class ArchCBuLongSeq(BaseArchCB, ACS__POA.CBuLongSeq): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBuLongSeq
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #-----------------------------------------------------------------------------
 
 
-class ArchCBlongLong(BaseArchCB, ACS__POA.CBlongLong):
+class ArchCBlongLong(BaseArchCB, ACS__POA.CBlongLong): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBlongLong
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBuLongLong(BaseArchCB, ACS__POA.CBuLongLong):
+class ArchCBuLongLong(BaseArchCB, ACS__POA.CBuLongLong): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBuLongLong
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         Parameters: name of this callback instance
         Raises: Nothing
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBdouble(BaseArchCB, ACS__POA.CBdouble):
+class ArchCBdouble(BaseArchCB, ACS__POA.CBdouble): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBdouble
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBdoubleSeq(BaseArchCB, ACS__POA.CBdoubleSeq):
+class ArchCBdoubleSeq(BaseArchCB, ACS__POA.CBdoubleSeq): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBdoubleSeq
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBstring(BaseArchCB, ACS__POA.CBstring):
+class ArchCBstring(BaseArchCB, ACS__POA.CBstring): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBstring
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBstringSeq(BaseArchCB, ACS__POA.CBstringSeq):
+class ArchCBstringSeq(BaseArchCB, ACS__POA.CBstringSeq): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBstringSeq
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBpatternValueRep(BaseArchCB, ACS__POA.CBpattern):
+class ArchCBpatternValueRep(BaseArchCB, ACS__POA.CBpattern): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBpattern,
@@ -460,12 +463,12 @@ class ArchCBpatternValueRep(BaseArchCB, ACS__POA.CBpattern):
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    buffer       -- backend_buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
@@ -474,11 +477,11 @@ class ArchCBpatternValueRep(BaseArchCB, ACS__POA.CBpattern):
 
         Raises: Nothing
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBpatternStringRep(BaseArchCB, ACS__POA.CBpattern):
+class ArchCBpatternStringRep(BaseArchCB, ACS__POA.CBpattern): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBlongPattern,
@@ -487,12 +490,12 @@ class ArchCBpatternStringRep(BaseArchCB, ACS__POA.CBpattern):
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None, enumStates=None):
         '''
         Constructor.
@@ -502,7 +505,7 @@ class ArchCBpatternStringRep(BaseArchCB, ACS__POA.CBpattern):
         else:
             self._enumStates = None
 
-        BaseArchCB.__init__(self, name, buffer,
+        BaseArchCB.__init__(self, name, backend_buffer,
                             logger)
 
     def working(self, value, completion, desc):
@@ -546,7 +549,7 @@ class ArchCBpatternStringRep(BaseArchCB, ACS__POA.CBpattern):
                                         +', data is not stored')     
              
             else:     
-                self.buffer.add(completion.timeStamp, self._enumStates[value])
+                self.backend_buffer.add(completion.timeStamp, self._enumStates[value])
 
         else:
             BaseArchCB.working(self, value, completion, desc)
@@ -598,99 +601,99 @@ class ArchCBpatternStringRep(BaseArchCB, ACS__POA.CBpattern):
                                         +', data is not stored')   
              
             else:     
-                self.buffer.add(completion.timeStamp, self._enumStates[value])
+                self.backend_buffer.add(completion.timeStamp, self._enumStates[value])
 
         else:
             BaseArchCB.working(self, value, completion, desc)
 
-       # Save completion to be able to fetch the error code.
+        # Save completion to be able to fetch the error code.
         self.completion = completion
 
-        self.buffer.flush()  # Done with the monitor so flush the data
+        self.backend_buffer.flush()  # Done with the monitor so flush the data
         
-        self.buffer = None # TODO: see above comment
+        self.backend_buffer = None # TODO: see above comment
         
         # Set flags.
         self.status = 'DONE'
 #------------------------------------------------------------------------------
 
 
-class ArchCBfloat(BaseArchCB, ACS__POA.CBfloat):
+class ArchCBfloat(BaseArchCB, ACS__POA.CBfloat): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBfloat
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBfloatSeq(BaseArchCB, ACS__POA.CBfloatSeq):
+class ArchCBfloatSeq(BaseArchCB, ACS__POA.CBfloatSeq):# @UndefinedVariable
 
     '''
         Extension of the BaseArchCB base class for CBfloatSeq
 
         Keyword arguments:
         name         -- of this callback instance
-        buffer       -- buffer from the backend registry
+        backend_buffer       -- buffer from the backend registry
         logger       -- logger to be use
         '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBbool(BaseArchCB, ACS__POA.CBboolean):
+class ArchCBbool(BaseArchCB, ACS__POA.CBboolean): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBbool
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBboolSeq(BaseArchCB, ACS__POA.CBbooleanSeq):
+class ArchCBboolSeq(BaseArchCB, ACS__POA.CBbooleanSeq): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBboolSeq
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
@@ -699,28 +702,28 @@ class ArchCBboolSeq(BaseArchCB, ACS__POA.CBbooleanSeq):
 
         Raises: Nothing
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 
-class ArchCBonOffSwitch(BaseArchCB, ACS__POA.CBOnOffSwitch):
+class ArchCBonOffSwitch(BaseArchCB, ACS__POA.CBOnOffSwitch): # @UndefinedVariable
 
     '''
     Extension of the BaseArchCB base class for CBonOffSwitch
 
     Keyword arguments:
     name         -- of this callback instance
-    buffer       -- buffer from the backend registry
+    backend_buffer       -- buffer from the backend registry
     logger       -- logger to be use
     '''
     #--------------------------------------------------------------------------
 
-    def __init__(self, name=None, buffer=None,
+    def __init__(self, name=None, backend_buffer=None,
                  logger=None):
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, buffer, logger)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 #------------------------------------------------------------------------------
 
 

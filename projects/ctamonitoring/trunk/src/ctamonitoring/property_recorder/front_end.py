@@ -11,8 +11,7 @@ from ctamonitoring.property_recorder.util import  PropertyTypeUtil
 from ctamonitoring.property_recorder.util import ComponentUtil
 from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder.callbacks import CBFactory
-import ACS
-import ACS__POA
+from ACS import CBDescIn  # @UnresolvedImport
 
 PropertyType = property_type.PropertyType
 
@@ -120,14 +119,21 @@ class FrontEnd(object):
     Requires to have ACS up and running to run
     '''
     
-    def __init__(self, recorder_config, acs_client):
+    def __init__(self, recorder_config, acs_client, recorder_component_name = None):
         '''
         recorder_config -- the setup parameters for the recorder
         acs_client      -- the instance of the ACS client, or component where the 
                            recorder is hosted, that provides access to the ACS world
         '''
+        
+        self.name = recorder_component_name
+        
+        self.recoder_space = RecorderSpaceObserver(recorder_config.max_comps,  
+                                                    recorder_config.max_props)
         # dictionary to store the components with acquired references
-        self._componentsMap = ComponentStore()
+        
+        self._componentsMap = ComponentStore(value = None, 
+                                            observer = self.recoder_space)
 
         self._isRecording = threading.Event()
 
@@ -138,9 +144,6 @@ class FrontEnd(object):
         
         self.recorder_config = recorder_config
         
-        self.recoder_space = RecorderSpaceObserver(self._componentsMap, 
-                                                recorder_config.max_comps,  
-                                                recorder_config.max_props)
         
         self.logger = acs_client.getLogger()
         
@@ -207,18 +210,20 @@ class FrontEnd(object):
                 
                 try: 
                     ComponentUtil.verify_component_state(comp_reference, compName)
-                except Exception, e:
-                    self.logger.logWarning(
-                    "the component " + compName + " is in a wrong state, "+
-                    str(e))
+                except Exception:
+                    #TODO: next item should not raise an error but a low level log. See how to do that
+                    self.logger.exception(
+                                        "the component " + compName + 
+                                        " is in a wrong state, ")
+                    
                     self._componentsMap.pop(compName)
 
             length -= len(self._componentsMap)
 
             if length > 0:
-                self.getLogger(
-                ).logInfo("%d component(s) removed from the records" %
-                          (length,))
+                self.logger.logInfo(
+                    "%d component(s) removed from the records" %
+                    (length,))
             else:
                 self.logger.logDebug(
                     "no component was removed from the records")
@@ -265,19 +270,20 @@ class FrontEnd(object):
             #If working in INCLUDE mode and it is in the include list, add it
             if self.recorder_config.is_include_mode:
                 if component_id in self.recorder_config.components:
-                    self.logger.logDebug('The component ' +
-                                         str(component_id) +
-                                         ' is not in the include list, skipping')
                     self.process_component(component_id)
+                else:
+                    self.logger.logDebug('The component ' +
+                        str(component_id) +
+                        ' is not in the include list, skipping')
             
             #If working in EXCLUDE mode and it is NOT in the EXCLUDE list, add it
             if not self.recorder_config.is_include_mode:
-                if not self.process_component(component_id):
-                    self.logger.logDebug('The component ' +
-                                         str(component_id) +
-                                         ' is in the exclude list, skipping')
+                if not component_id in self.recorder_config.components:
                     self.process_component(component_id)
-            
+                else:
+                    self.logger.logDebug('The component ' +
+                        str(component_id) +
+                        ' is in the exclude list, skipping')
             
         self.logger.logDebug("done...")
         
@@ -310,11 +316,11 @@ class FrontEnd(object):
             if self._can_be_added(component_id):
                 try:
                     # get no sticky so we do not prevent them of being deactivated
-                    component = self.getComponentNonSticky(component_id)
-                except Exception, e:
-                    self.logger.logWarning(
-                        "could not get a reference to the component "+ str(component_id) + 
-                        " due to an exception: "+ str(e))
+                    component = self.acs_client.getComponentNonSticky(component_id)
+                except Exception:
+                    self.logger.exception("could not get a reference to the component "+ 
+                                        str(component_id))
+                                        
                     return
         
                 # skip other property recorders
@@ -326,21 +332,19 @@ class FrontEnd(object):
 
                 self._componentsMap[component_id] = comp_info
                 
-                self._logger.logDebug("Component " +component_id 
+                self.logger.logDebug("Component " +component_id 
                                   + " was added")
                               
                 result = True
             
             else:
-                self._logger.logDebug("Component " +component_id 
+                self.logger.logDebug("Component " +component_id 
                                   + " cannot be added")
                 return 
          
-        except Exception, e:
-                    self.logger.logWarning(
-                        str(component_id) +
-                        " could not be added " 
-                        "due to an exception: "+ str(e))
+        except Exception:
+                    self.logger.exception(str(component_id) +
+                        " could not be added ")
                 
         finally:
             self.logger.logDebug("release lock")
@@ -370,10 +374,10 @@ class FrontEnd(object):
             return False
     
         # Skipping the self component to avoid getting a self-reference
-        if(component_id == self.getName()):
+         
+        if(component_id == self.name):
             self.logger.logDebug("skipping myself")
             return False
-
 
         return True        
     
@@ -396,26 +400,26 @@ class FrontEnd(object):
         
         #TODO Can raise exception, document it
         
-        self.logger.logDebug("called...")
-
         component = component_reference
-
-        if ComponentUtil.is_characteristic_component(component):
-            return None
-
         monitor_list = []
+
+        if not ComponentUtil.is_characteristic_component(component):
+            self.logger.logDebug("Component is not characteristic")
+            return monitor_list
+
         
         chars = component.find_characteristic("*")
         
         for count in range(0, len(chars)):
-            myCharList = self._component.get_characteristic_by_name(
+            myCharList = component_reference.get_characteristic_by_name(
                 str(chars[count])).value().split(',')
             # As a way of discerning from a property to other type of
             # characteristic, I check for the length of the char list. If it is
             # longer than 5, then is probably a property
             if (len(myCharList) > 5):
-                self._logger.logDebug(
-                    "probably is a property, trying the information of the archive")
+                self.logger.logDebug(
+                    'probably is a property, trying to get the information ' 
+                    'for the archive')
 
                 # Check if the characteristic is a property
 
@@ -437,10 +441,12 @@ class FrontEnd(object):
                     )
                 
                 try: 
-                    my_buffer = self._create_buffer(acs_property, property_attributes)
-                except Exception, e:
-                    self.logger.logWarning(
-                        "The buffer could not be created" + str(e))
+                    my_buffer = self._create_buffer(acs_property, 
+                                    property_attributes, 
+                                    component_reference)
+                except Exception:
+                    self.logger.exception(
+                        "The buffer could not be created")
                     continue
                 
   
@@ -450,14 +456,14 @@ class FrontEnd(object):
                                         my_buffer)
               
                 if property_monitor is not None:
-                    monitor_list.append(object)
+                    monitor_list.append(property_monitor)
 
         return monitor_list   
       
     
        
             
-    def _create_buffer(self, acs_property, property_attributes):
+    def _create_buffer(self, acs_property, property_attributes, component_reference):
         '''
         Creates a buffer in the backend
         
@@ -468,12 +474,15 @@ class FrontEnd(object):
         Exception  -- If any other problem happened when creating the buffers  
         '''
         my_prop_type = None
-                          
+        
+        component_name = component_reference._get_name()
+        component_type = component_reference._NP_RepositoryId               
+        
         try:
             my_prop_type = PropertyTypeUtil.getPropertyType(
                 acs_property._NP_RepositoryId)
         except Exception, e:
-            self._logger.logWarning(
+            self.logger.logWarning(
                 "Property type not supported, skipping")
             raise TypeError(e)
         
@@ -484,26 +493,26 @@ class FrontEnd(object):
         if (type is None) or (type is PropertyType.OBJECT):
                     my_prop_type = PropertyType.OBJECT #TODO: Try to get this from the PropertyUtil 
                     try:
-                        enumStates = PropertyTypeUtil.getEnumPropDict(acs_property, self._logger)
-                        self._logger.logDebug("Enum States found: "+str(enumStates))
+                        enumStates = PropertyTypeUtil.getEnumPropDict(acs_property, self.logger)
+                        self.logger.logDebug("Enum States found: "+str(enumStates))
                         
                     except Exception:
-                        self._logger.logDebug(
+                        self.logger.logDebug(
                             "Enum states cannot be read, use the int representation")
 
         try:         
-            my_buffer = self._registry.register(component_name = self._component._get_name(),
-                               component_type = self._component._NP_RepositoryId,
+            my_buffer = self._registry.register(component_name = component_name,
+                               component_type = component_type,
                                property_name = acs_property._get_name(),
                                property_type = my_prop_type,
                                property_type_desc = enumStates, 
                                **property_attributes) 
         
         except UserWarning: 
-            self._logger.logWarning(
+            self.logger.logWarning(
                 "Warning of buffer being used received, forcing in")
-            my_buffer = self._registry.register(component_name = self._component._get_name(),
-                                component_type = self._component._NP_RepositoryId,
+            my_buffer = self._registry.register(component_name = component_name,
+                                component_type = component_type,
                                 property_name = acs_property._get_name(),
                                 property_type = my_prop_type,
                                 property_type_desc = enumStates, 
@@ -519,7 +528,7 @@ class FrontEnd(object):
             time_trigger_omg = long(10000000 * my_buffer.get("default_timer_trig"))
            
         except Exception:
-            self._logger.logDebug("no time trigger found in the CDB, "
+            self.logger.logDebug("no time trigger found in the CDB, "
                                   "using the default value")
             time_trigger_omg = 10000000 * self.recorder_config.default_timer_trigger
 
@@ -531,12 +540,12 @@ class FrontEnd(object):
             self.logger)
 
         # Activate the callback monitor
-        cbMonServant = self.activateOffShoot(cbMon)
+        cbMonServant = self.acs_client.activateOffShoot(cbMon)
         # Create the real monitor registered with the component
 
-        desc = ACS.acscommon_idl.CBDescIn(0, 0, 0)
+        desc = CBDescIn(0, 0, 0)
         # CBDescIn(0, 0, 0)
-        property_monitor = property.create_monitor(cbMonServant, desc)
+        property_monitor = acs_property.create_monitor(cbMonServant, desc)
 
         self.logger.logDebug("Time trigger to use for the monitor: " + 
                                   str(time_trigger_omg))
@@ -574,12 +583,15 @@ class FrontEnd(object):
         my_prop_str = 'component' + '._get_' + chars + '()'
         my_pro = None
 
-        self.logger.debug("evaluating: " + my_prop_str)
+        self.logger.debug("evaluating: " + 
+                        str(component) + 
+                        '._get_' + chars + '()')
         try:
             my_pro = eval(my_prop_str)
         except Exception:
             self.logger.logDebug(
                 "it was not possible to get the property, jumping to next one")
+            self.logger.exception("")
         return my_pro
     #-------------------------------------------------------------------------
             
@@ -673,9 +685,9 @@ class FrontEnd(object):
                 try:
                     monitor.destroy()
                 except Exception:
-                    self.logger.logWarning(
-                        "exception when deactivating the monitor: "
-                        + str(monitor))
+                    self.logger.exception("exception when deactivating a monitor for: "
+                        + str(comp_info.compReference._get_name()))
+                    
 
         # release the reference to the component
         # self.releaseComponent(componentId)
@@ -747,6 +759,7 @@ class ComponentWhatchdog(threading.Thread):
             self._recorder_instance.logger.logDebug(
                         "stopping")
             self._Thread__stop
+            self.sleep_event.clear()
             # I needed to add this stop because, even if a daemon, the Python
             # component logger would show errors (showing up up periodically) 
             # because this thread did not finished. With this it worked well.
@@ -773,8 +786,9 @@ class ComponentStore(dict):
         if value is None:
             value = {}
         dict.__init__(self, value)
-        self.set_observer(observer)
-        self.observer.dict_init(self)
+        if observer is not None:
+            self.set_observer(observer)
+            self.observer.dict_init(self)
     
     def set_observer (self, observer):
         """
@@ -1015,6 +1029,7 @@ class RecorderSpaceObserver(object):
             self._actual_components += 1
         else:
             prev_monitors += len(oldvalue.monitors)
+        
         
         self._actual_properties = self._actual_properties + len(value.monitors) - prev_monitors
         

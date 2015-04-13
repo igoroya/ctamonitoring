@@ -225,7 +225,7 @@ class ComponentUtil(object):
         return (component._NP_RepositoryId == constants.RECORDER_NP_REP_ID)
     
     @staticmethod                
-    def verify_component_state(self, comp_reference, component_id):
+    def verify_component_state(comp_reference, component_id):
         '''
         Check if the component is still operational
         

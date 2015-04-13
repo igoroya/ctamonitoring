@@ -30,7 +30,7 @@ class ComponenNotFoundError(Exception):
         self.msg = msg
     
     def __str__(self):
-        retVal = "component, " + str(self.component_id) + "not found"
+        retVal = "component, " + str(self.component_id) + " not found"
         if self.msg:
             retVal += ": " + self.msg
         return retVal
