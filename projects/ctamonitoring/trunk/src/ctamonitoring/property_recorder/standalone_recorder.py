@@ -1,4 +1,4 @@
-__version__ = "$Id: standalone_recorder.py 1152 2015-03-23 18:03:44Z igoroya $"
+__version__ = "$Id$"
 '''
 Module with all what is related to the configuration holding for the property 
 recorder frontend
@@ -6,9 +6,9 @@ recorder frontend
 @author: igoroya
 @organization: DESY Zeuthen
 @copyright: cta-observatory.org
-@version: $Id: standalone_recorder.py 1152 2015-03-23 18:03:44Z igoroya $
-@change: $LastChangedDate: 2015-03-23 19:03:44 +0100 (Mon, 23 Mar 2015) $
-@change: $LastChangedBy: igoroya $
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
 '''
 '''
 This is a version of the property recorder that is run as an application and not as an ACS component.

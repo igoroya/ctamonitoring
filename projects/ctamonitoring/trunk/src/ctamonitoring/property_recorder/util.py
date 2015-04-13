@@ -1,4 +1,4 @@
-__version__ = "$Id: util.py 1152 2015-03-23 18:03:44Z igoroya $"
+__version__ = "$Id$"
 
 '''
 Contains some helper classes to be of used in the module
@@ -9,8 +9,8 @@ recorder to work
 @author: igoroya
 @organization: HU Berlin
 @copyright: cta-observatory.org
-@version: $Id: constants.py 566 2013-08-26 16:30:31Z igoroya $
-@change: $LastChangedDate: 2013-08-26 18:30:31 +0200 (Mon, 26 Aug 2013) $, $LastChangedBy: igoroya $
+@version: $Id$
+@change: $LastChangedDate$, $LastChangedBy$
 '''
 
 from ctamonitoring.property_recorder.backend import property_type

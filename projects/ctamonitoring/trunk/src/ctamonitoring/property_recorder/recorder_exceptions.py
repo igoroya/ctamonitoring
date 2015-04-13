@@ -1,4 +1,4 @@
-__version__ = "$Id: recorder_exceptions.py 594 2013-09-15 15:27:57Z igoroya $"
+__version__ = "$Id$"
 
 
 
@@ -8,8 +8,8 @@ Contains exceptions that could be raised by the front-end module
 @author: igoroya
 @organization: HU Berlin
 @copyright: cta-observatory.org
-@version: $Id: recorder_exceptions.py 566 2013-08-26 16:30:31Z igoroya $
-@change: $LastChangedDate: 2013-08-26 18:30:31 +0200 (Mon, 26 Aug 2013) $, $LastChangedBy: igoroya $
+@version: $Id$
+@change: $LastChangedDate$, $LastChangedBy$
 '''
 
 
