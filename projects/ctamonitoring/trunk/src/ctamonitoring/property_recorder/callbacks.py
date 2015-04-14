@@ -22,7 +22,7 @@ from omniORB.CORBA import TRUE  # @UnresolvedImport
 from ctamonitoring.property_recorder import constants
 from ctamonitoring.property_recorder.frontend_exceptions import (
     UnsupporterPropertyTypeError
-)
+    )
 from Acspy.Common.Log import getLogger
 
 __version__ = "$Id$"
