@@ -7,9 +7,9 @@ also the CBFactory to get them
 @author: igoroya
 @organization: DESY Zeuthen
 @copyright: cta-observatory.org
-@version: $Id: test_callbacks.py 1168 2015-04-13 18:42:27Z igoroya $
-@change: $LastChangedDate: 2015-04-13 20:42:27 +0200 (Mon, 13 Apr 2015) $
-@change: $LastChangedBy: igoroya $
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
 '''
 import unittest
 from ctamonitoring.property_recorder.backend.dummy.registry import Buffer
@@ -58,7 +58,7 @@ from ACS import (
     )
 import logging
 
-__version__ = "$Id: test_callbacks.py 1168 2015-04-13 18:42:27Z igoroya $"
+__version__ = "$Id$"
 
 
 class BaseArchCBTest(unittest.TestCase):
