@@ -61,7 +61,8 @@ class BaseArchCB:
         @type backend_buffer:
             ctamonitoring.property_recorder.backend.dummy.registry.Buffer
 
-        @raise ValueError: if no name is given to the property
+        @raise ValueError: if no name is given to the property 
+            or no buffer is specified
         '''
 
         # If there is no name then we do not want to store anything
@@ -207,7 +208,7 @@ class BaseArchCB:
 
         Returns: last archived value
         '''
-        return self.backend_buffer[-1]
+        raise NotImplementedError("History cannot be obtained from buffer")
 
 
 class ArchCBlong(BaseArchCB, ACS__POA.CBlong):  # @UndefinedVariable
@@ -604,9 +605,13 @@ class CBFactory():
     __cbMap[constants.RWSTRING_NP_REP_ID] = ArchCBstring
     __cbMap[constants.ROSTRINGSEQ_NP_REP_ID] = ArchCBstringSeq
     __cbMap[constants.RWSTRINGSEQ_NP_REP_ID] = ArchCBstringSeq
+    __cbMap[constants.ROWRONGBOOL_NP_REP_ID] = None
+    __cbMap[constants.RWWRONGBOOL_NP_REP_ID] = None
+    __cbMap[constants.ROONOFFSWITCH_NP_REP_ID] = None
+    __cbMap[constants.RWONOFFSWITCH_NP_REP_ID] = None
 
     @staticmethod
-    def getCallback(prop, monitorBuffer):
+    def get_callback(prop, prop_name, monitorBuffer):
         '''
         Static factory method that returns the callback adequate to
         the property
@@ -624,7 +629,7 @@ class CBFactory():
             else:
                 return (
                     CBFactory.__cbMap[prop._NP_RepositoryId](
-                        prop._get_name(), monitorBuffer)
+                        prop_name, monitorBuffer)
                 )
         # If key error, then it is probably an enum
         except KeyError:
@@ -633,6 +638,6 @@ class CBFactory():
                 "property type candidate: enum")
             return (
                 ArchCBpatternValueRep(
-                    prop._get_name(),
+                    prop_name,
                     monitorBuffer)
             )

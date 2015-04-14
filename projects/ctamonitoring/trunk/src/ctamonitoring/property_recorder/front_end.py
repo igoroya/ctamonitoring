@@ -543,8 +543,9 @@ class FrontEnd(object):
 
        
         #This can rise a UnsupporterPropertyTypeError
-        cbMon = CBFactory.getCallback(
+        cbMon = CBFactory.get_callback(
             acs_property,
+            acs_property._get_name(),
             my_buffer)
 
         # Activate the callback monitor
