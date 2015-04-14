@@ -1,17 +1,16 @@
 from ctamonitoring.property_recorder import recorder
-from ctamonitoring.property_recorder.recorder import STORAGE_TYPE
 
 import threading
 import collections
 from __builtin__ import str
 from ctamonitoring.property_recorder.config import backend_registries
 from ctamonitoring.property_recorder.config import PropertyAttributeHandler
-from ctamonitoring.property_recorder import constants
 from ctamonitoring.property_recorder.util import  PropertyTypeUtil
 from ctamonitoring.property_recorder.util import ComponentUtil
 from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder.callbacks import CBFactory
 from ACS import CBDescIn  # @UnresolvedImport
+from ctamonitoring.property_recorder.frontend_exceptions import UnsupporterPropertyTypeError
 
 PropertyType = property_type.PropertyType
 
@@ -450,10 +449,15 @@ class FrontEnd(object):
                     continue
                 
   
-                property_monitor = self._create_monitor(
-                                        acs_property, 
-                                        property_attributes, 
-                                        my_buffer)
+                try: 
+                    property_monitor = self._create_monitor(
+                                            acs_property, 
+                                            property_attributes, 
+                                            my_buffer)
+                
+                except UnsupporterPropertyTypeError:
+                    self.logger.exception("")
+                    property_monitor = None
               
                 if property_monitor is not None:
                     monitor_list.append(property_monitor)
@@ -523,6 +527,11 @@ class FrontEnd(object):
         
         
     def _create_monitor(self, acs_property, property_attributes, my_buffer):
+        '''
+        
+        Raises -- UnsupporterPropertyTypeError If the property type is not supported
+                  for monitors
+        '''
     
         try:
             time_trigger_omg = long(10000000 * my_buffer.get("default_timer_trig"))
@@ -533,11 +542,10 @@ class FrontEnd(object):
             time_trigger_omg = 10000000 * self.recorder_config.default_timer_trigger
 
        
-        
+        #This can rise a UnsupporterPropertyTypeError
         cbMon = CBFactory.getCallback(
             acs_property,
-            my_buffer,
-            self.logger)
+            my_buffer)
 
         # Activate the callback monitor
         cbMonServant = self.acs_client.activateOffShoot(cbMon)

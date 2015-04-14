@@ -16,7 +16,7 @@ recorder to work
 from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder import constants
 from ctamonitoring.property_recorder.constants import DecodeMethod
-from ctamonitoring.property_recorder.recorder_exceptions import *
+from ctamonitoring.property_recorder.frontend_exceptions import *
 
 import ast
 
