@@ -469,16 +469,19 @@ class FrontEnd(object):
             
     def _create_buffer(self, acs_property, property_attributes, component_reference):
         '''
-        Creates a buffer in the backend
+        Creates a buffer in the backend and returns it
+   
+        @param acs_property: the ACS property
+        @type acs_property: ACS._objref_<prop_type>
         
-        Returns buffer in the backend
+        
         
         Raises:
         TypeError -- If the property type is not supported
         Exception  -- If any other problem happened when creating the buffers  
         '''
         my_prop_type = None
-        
+     
         component_name = component_reference._get_name()
         component_type = component_reference._NP_RepositoryId               
         
@@ -539,7 +542,7 @@ class FrontEnd(object):
         except Exception:
             self.logger.logDebug("no time trigger found in the CDB, "
                                   "using the default value")
-            time_trigger_omg = 10000000 * self.recorder_config.default_timer_trigger
+            time_trigger_omg = long(10000000 * self.recorder_config.default_timer_trigger)
 
        
         #This can rise a UnsupporterPropertyTypeError
