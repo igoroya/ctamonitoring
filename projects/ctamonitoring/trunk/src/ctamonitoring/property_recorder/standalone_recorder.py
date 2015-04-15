@@ -83,7 +83,7 @@ class RecorderParser(object):
                         help='Maximum number of components to be stored in' 
                             ' the recorder, no matter how many properties')
         argparser.add_argument('--default_timer_trigger', action = 'store',
-                        dest='default_timer_trigger', type = long, 
+                        dest='default_timer_trigger', type = float, 
                         help='The monitoring period for the properties when no specific entry' 
                             ' exists in the CDB')
         argparser.add_argument('--max_props', action = 'store',
