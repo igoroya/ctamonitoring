@@ -486,7 +486,7 @@ class FrontEnd(object):
         component_type = component_reference._NP_RepositoryId               
         
         try:
-            my_prop_type = PropertyTypeUtil.getPropertyType(
+            my_prop_type = PropertyTypeUtil.get_property_type(
                 acs_property._NP_RepositoryId)
         except Exception, e:
             self.logger.logWarning(
@@ -497,17 +497,22 @@ class FrontEnd(object):
         #TODO: Think in what to do with the enum states
         enumStates = None
           
-        if (type is None) or (type is PropertyType.OBJECT):
-                    my_prop_type = PropertyType.OBJECT #TODO: Try to get this from the PropertyUtil 
+        if (my_prop_type is None) or (my_prop_type is PropertyType.OBJECT):
+                    my_prop_type = PropertyType.OBJECT 
                     try:
-                        enumStates = PropertyTypeUtil.getEnumPropDict(acs_property, self.logger)
-                        self.logger.logDebug("Enum States found: "+str(enumStates))
-                        
-                    except Exception:
+                        enumStates = PropertyTypeUtil.get_enum_prop_dict(acs_property)
+                        self.logger.logDebug("Enum States found: "+str(enumStates))                        
+                    except AttributeError:
                         self.logger.logDebug(
                             "Enum states cannot be read, use the int representation")
+                    except ValueError:
+                        self.logger.logDebug(
+                            "Enum states do not make sense, use the int representation")
+                    except Exception:
+                        self.logger.exception("")
 
         try:         
+            
             my_buffer = self._registry.register(component_name = component_name,
                                component_type = component_type,
                                property_name = acs_property._get_name(),
@@ -526,6 +531,12 @@ class FrontEnd(object):
                                 disable = False, 
                                 force = True,
                                 **property_attributes) 
+            
+        self.logger.logDebug(
+                "Create property with attributes: "+
+                str(property_attributes)
+                )
+        
         return my_buffer
         
         

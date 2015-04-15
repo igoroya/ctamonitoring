@@ -1,24 +1,27 @@
-__version__ = "$Id$"
-
 '''
 Contains some helper classes to be of used in the module
 
-I have tried to put here all the "hacks" I needed to add for the property
-recorder to work 
+Most of the "hacks" that are needed to make the property
+recorder to work are included here
 
 @author: igoroya
-@organization: HU Berlin
+@organization: DESY
 @copyright: cta-observatory.org
 @version: $Id$
 @change: $LastChangedDate$, $LastChangedBy$
 '''
-
 from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder import constants
 from ctamonitoring.property_recorder.constants import DecodeMethod
-from ctamonitoring.property_recorder.frontend_exceptions import *
-
+from ctamonitoring.property_recorder.frontend_exceptions import (
+    ComponenNotFoundError,
+    WrongComponenStateError
+    )
+from Acspy.Common.Log import getLogger
 import ast
+
+__version__ = "$Id$"
+
 
 
 PropertyType = property_type.PropertyType
@@ -58,7 +61,8 @@ class PropertyTypeUtil():
     _cbMap[constants.RWULONGLONGSEQ_NP_REP_ID] = None
     _cbMap[constants.ROBOOLEAN_NP_REP_ID] = PropertyType.BOOL
     _cbMap[constants.RWBOOLEAN_NP_REP_ID] = PropertyType.BOOL
-    #TODO: we should have PropertyType.BOOL_SEQ in the backend
+    #TODO: we should have PropertyType.BOOL_SEQ in the backend, but we don't, so 
+    #I remove support from them
     _cbMap[constants.ROBOOLEANSEQ_NP_REP_ID] = None
     _cbMap[constants.RWBOOLEANSEQ_NP_REP_ID] = None
     _cbMap[constants.ROPATTERN_NP_REP_ID] = PropertyType.BIT_FIELD
@@ -73,17 +77,17 @@ class PropertyTypeUtil():
 #------------------------------------------------------------------------------
 
     @staticmethod
-    def getPropertyType(repID):
-        """
+    def get_property_type(repID):
+        '''
         Returns the enum type of the property for the
         ND_Repository_ID of the property
 
-        Returns:
-        PropertyType -- from the Enum at
-                        ctamonitoring.property_recorder.backend.property_type
-        Raises:
-        TypeError -- if the property type is not supported
-        """
+        @param repID: The Np_Repository_Id of a property
+        @type repID: string
+        @return: The property following the backend definition
+        @rtype: ctamonitoring.property_recorder.backend.property_type
+
+        '''
         try:
             if PropertyTypeUtil._cbMap[repID] is None:
                 raise TypeError("The type " + repID + " is not supported")
@@ -95,28 +99,29 @@ class PropertyTypeUtil():
 
         # If key error, then it is probably an enum
         except KeyError:
-            PropertyType.OBJECT
+            return PropertyType.OBJECT
 #------------------------------------------------------------------------------
 
     @staticmethod
-    def getEnumPropDict(prop, logger):
-        """
+    def get_enum_prop_dict(prop):
+        '''
         Creates an dictionary with  int_rep:str_rep
 
         This is needed in order to store the string representation of
         an enumeration, as the monitors use the integer
         representation by default.
+    
+        @param property: property object
+        @type property: ACS._objref_<prop_type>
+        @raise ValueError: if less than 2 states are found
+        @raise AttributeError: no states description is found in the CDB
+        @return: pair int_rep:str_rep of the enum
+        @rtype: dict
 
-        Keyword arguments:
-        property     -- property object
+        '''
 
-        Raises:
-        ValueError -- if less than 2 states are found
-        AttributeError -- no states description is found in the CDB
-
-
-        Returns: enumDict dictionary of pair int_rep:str_rep of the enum
-        """
+        logger = getLogger('ctamonitoring.property_recorder.util')
+        
         try:
             enumValues = prop.get_characteristic_by_name(
                 "statesDescription").value().split(', ')
@@ -124,12 +129,13 @@ class PropertyTypeUtil():
             logger.logWarning('No statesDescription found in the CDB')
             raise AttributeError
 
+        
         enumDict = {}
         i = 0
         for item in enumValues:
             string = str(i)
-            enumDict[string] = enumValues[i]
-            i = i + 1
+            enumDict[string] = item.strip()
+            i += 1
         if len(enumDict) < 2:
             logger.logWarning(
                 'Less than 2 states found, no sense on using a string rep.')
@@ -175,9 +181,9 @@ class PropertyTypeUtil():
 
 #TODO: Will becme redundant, remove when possible
 class DecodeUtil():
-    """
+    '''
     Holds utilities to decode data from the CDB
-    """
+    '''
     @staticmethod
     def try_utf8(data):
         "Returns a Unicode object on success, or None on failure"
@@ -295,12 +301,21 @@ class AttributeDecoder(object):
         Picks the correct decoding method
         Raises an exception when the decoding method is not supported
         '''
-        if decode_method is DecodeMethod.NONE : AttributeDecoder._decode_none(value)
-        elif decode_method is DecodeMethod.AST_LITERAL : AttributeDecoder._decode_ast_literal(value)
-        elif decode_method is DecodeMethod.AST_LITERAL_HYBRID : AttributeDecoder._decode_ast_literal_hybrid(value)
+        if decode_method is DecodeMethod.NONE : return AttributeDecoder._decode_none(value)
+        elif decode_method is DecodeMethod.AST_LITERAL : return AttributeDecoder._decode_ast_literal(value)
+        elif decode_method is DecodeMethod.AST_LITERAL_HYBRID : return AttributeDecoder._decode_ast_literal_hybrid(value)
         elif decode_method is DecodeMethod.UTF8 : AttributeDecoder._decode_utf8(value)
-        else:  raise ValueError("decode_method is not supported") 
-        
+        else: raise ValueError("decode_method is not supported") 
+    @staticmethod
+    def decode_boolean(value):    
+        '''
+        Returns a Python boolean when a cdb boolean attrib is provided,
+        otherwise None
+        '''
+        try:
+            return AttributeDecoder._decode_ast_literal(value.title())
+        except Exception:
+            return None    
         
 class EnumUtil(object):
     

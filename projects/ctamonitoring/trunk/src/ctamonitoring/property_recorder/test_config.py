@@ -1,5 +1,5 @@
 '''
-Unit test module for test_config
+Unit test module for config
 
 @author: igoroya
 @organization: DESY Zeuthen

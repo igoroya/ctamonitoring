@@ -249,8 +249,6 @@ class PropertyAttributeHandler(object):
             raw_value = acs_property.get_characteristic_by_name(
                 attribute.name).value()
         except NoSuchCharacteristic:
-            getLogger().logDebug(
-                'The attrib:  ' + str(attribute.name) + ' does not exist')
             return None
 
         return PropertyAttributeHandler._process_attribute(
@@ -270,17 +268,26 @@ class PropertyAttributeHandler(object):
 
     @staticmethod
     def _process_attribute(attribute, raw_value):
-        logger = getLogger()
+        logger = getLogger('property_recorder.config.PropertyAttributeHandler')
         try:
             value = AttributeDecoder.decode_attribute(
                 raw_value, attribute.decoding)
+        except ValueError:
+            # In the case of boolean properties, the archive_delta and some other attributes 
+            # Are is boolean and the decoding fails we try to catch it here
+            value = AttributeDecoder.decode_boolean(raw_value)
         except Exception:
             logger.exception("")
             value = None
-
+        
+        # logger.logInfo(
+        #        " attribute: " + attribute.name +
+        #        " raw value: " + str(raw_value) +
+        #        " decoded value: " + str(value)
+        #        )
+        
         # Check those cases when it has to be positive
         if (attribute.isPositive) and (value is not None) and (value < 0.0):
-            logger.logDebug('value is not valid, ignoring entry')
             value = None
 
         # Check those cases when it has to contain specific keyword synonym to

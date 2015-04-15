@@ -78,7 +78,7 @@ class BaseArchCB:
         else:
             self.backend_buffer = backend_buffer
 
-        self._logger = getLogger()
+        self._logger = getLogger('ctamonitoring.property_recorder.callbacks')
 
         # Flag for the application to check if the action is still going on
         # and if the callback has arrived.
@@ -633,7 +633,7 @@ class CBFactory():
                 )
         # If key error, then it is probably an enum
         except KeyError:
-            getLogger().debug(
+            getLogger('ctamonitoring.property_recorder.callbacks').debug(
                 "no NP_RepositoryID, "
                 "property type candidate: enum")
             return (
