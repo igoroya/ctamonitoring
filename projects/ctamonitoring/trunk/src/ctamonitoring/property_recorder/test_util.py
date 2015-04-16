@@ -15,21 +15,25 @@ the module testacsproperties is used.
 '''
 
 import unittest
-from ctamonitoring.property_recorder.util import PropertyTypeUtil 
+from ctamonitoring.property_recorder.util import PropertyTypeUtil ,\
+    ComponentUtil, AttributeDecoder, EnumUtil
 from Acspy.Clients.SimpleClient import PySimpleClient
 import logging
 from ctamonitoring.property_recorder.backend import property_type
+from enum import Enum
+from ctamonitoring.property_recorder.constants import DecodeMethod
 
 PropertyType = property_type.PropertyType
 
-class getPropertyTypeTypeTest(unittest.TestCase):
-   
-    
-    
+class PropertyTypeUtilTest(unittest.TestCase):
+    '''
+    This test requires ACS running with the testacsproperties CDB and 
+    the myC cpp container up 
+    '''
     def setUp(self):
-        # I was trying to make ACS up here fpr teh testbut does not work
-        # Perhaps is better to use TAT or some util used in tat for this
-        # I will assume that ACS is running, with the correct CDB, component and container runnint
+        # I was trying to make ACS up here for the test but does not work
+        # Perhaps is better to use TAT or some util used in that for this
+        # I will assume that ACS is running, with the correct CDB, component and container running
         # TODO: Document!
                 
         #set the corresponding ACS CDB
@@ -56,7 +60,7 @@ class getPropertyTypeTypeTest(unittest.TestCase):
         #create a client
         self._my_acs_client = PySimpleClient()
         logger = self._my_acs_client.getLogger()
-        logger.setLevel(logging.WARNING) # disable annoying output from te tests
+        logger.setLevel(logging.WARNING) # disable annoying output from the tests
         
         
     def tearDown(self):
@@ -282,9 +286,141 @@ class getPropertyTypeTypeTest(unittest.TestCase):
             PropertyType.LONG_LONG
             )        
            
+    def test_is_archive_delta_enabled(self):
+        
+        # First test the cases when it should be false
+        self.assertFalse(
+                 PropertyTypeUtil.is_archive_delta_enabled(None)
+                 )
+        self.assertFalse(
+                 PropertyTypeUtil.is_archive_delta_enabled(False)
+                 )
+        self.assertFalse(
+                 PropertyTypeUtil.is_archive_delta_enabled("0")
+                 )
+        self.assertFalse(
+                 PropertyTypeUtil.is_archive_delta_enabled("0.0")
+                 )
+        self.assertFalse(
+                 PropertyTypeUtil.is_archive_delta_enabled(0)
+                 )
+        self.assertFalse(
+                 PropertyTypeUtil.is_archive_delta_enabled(0.0)
+                 )
+        
+       
+class ComponentUtilTest(unittest.TestCase):
+    '''
+    This test requires ACS running with the default CDB and 
+    the bilboContainer cpp container up 
+    
+    @todo: create my own test CDB including the components that I need
+    '''
+    def setUp(self):
+        self._my_acs_client = PySimpleClient()
+        logger = self._my_acs_client.getLogger()
+        logger.setLevel(logging.WARNING) # disable annoying output from the tests
+        
+        
+    def tearDown(self):
+        self._my_acs_client.disconnect()
+         
+    def test_is_characteristic_component(self):
+        # Now check that I have a characteristic  component
+        my_component = self._my_acs_client.getComponent("CLOCK1", True)
+        self.assertTrue(
+                ComponentUtil.is_characteristic_component(my_component)
+                )
+        # Now check a component that is not characteristic
+        my_component2 = self._my_acs_client.getComponent("TIMER1", True)
+        self.assertFalse(
+                ComponentUtil.is_characteristic_component(my_component2)
+                )
 
-      
-      
+    # TODO: Test if the component is a property recorder component --> Need to put adequate CDB
+    # TODO: Test if the component is a Python characteristic component --> Need to put adequate CDB
+    
+    def test_is_component_state_ok(self):
+        my_component = self._my_acs_client.getComponent("CLOCK1", True)
+        self.assertTrue(
+                ComponentUtil.is_component_state_ok(my_component, "CLOCK1")
+                )
+        
+class AttributeDecoderTest(unittest.TestCase):
+    
+    def test_decode_boolean(self):
+        cdb_boolean = 'true'
+        self.assertTrue(AttributeDecoder.decode_boolean(cdb_boolean))
+        cdb_boolean = 'false'
+        self.assertFalse(AttributeDecoder.decode_boolean(cdb_boolean))
+    
+    def test_decode_attribute(self):
+        a_num = '1'
+        a_no_decode = 'hello'
+        a_utf_8 = "my_text".encode('utf-8')
+    
+    
+        self.assertEqual( 
+                1,
+                AttributeDecoder.decode_attribute(
+                        a_num, 
+                        DecodeMethod.AST_LITERAL
+                        )
+                )
+        
+        self.assertEqual( 
+                1,
+                AttributeDecoder.decode_attribute(
+                        a_num, 
+                        DecodeMethod.AST_LITERAL_HYBRID
+                        )
+                )
+        
+        self.assertEqual( 
+                'hello',
+                AttributeDecoder.decode_attribute(
+                        a_no_decode, 
+                        DecodeMethod.NONE
+                        )
+                )
+        
+        self.assertEqual( 
+                'hello',
+                AttributeDecoder.decode_attribute(
+                        a_no_decode, 
+                        DecodeMethod.AST_LITERAL_HYBRID
+                        )
+                )
+       
+        self.assertEqual( 
+                'my_text',
+                AttributeDecoder.decode_attribute(
+                        a_utf_8, 
+                        DecodeMethod.UTF8
+                        )
+                )
+        
+class EnumUtilTest(unittest.TestCase):
+    
+   
+    def test_to_string(self):
+        test_enum = Enum('DUMMY', 'LOG', 'MYSQL', 'MONGODB')    
+        self.assertEqual(
+                'DUMMY', 
+                EnumUtil.to_string(test_enum.DUMMY)
+                )
+    def test_from_string(self):
+        test_enum = Enum('DUMMY', 'LOG', 'MYSQL', 'MONGODB')    
+        self.assertEqual(
+                test_enum.LOG, 
+                EnumUtil.from_string(test_enum, 'LOG')
+                )
+        
+        self.assertRaises(
+                ValueError,
+                EnumUtil.from_string,
+                test_enum, 'NOPE')
+        
 if __name__ == '__main__':
     unittest.main()
 

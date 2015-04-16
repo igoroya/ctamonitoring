@@ -1,5 +1,3 @@
-from ctamonitoring.property_recorder import recorder
-
 import threading
 import collections
 from __builtin__ import str
@@ -23,89 +21,6 @@ ComponentInfo = collections.namedtuple(
 compReference -- the CORBA reference to the component
 monitors      -- list with the monitor objects associated to the component
 '''
-
-class standalone(recorder.recorder):
-
-    """
-    For using the standalone version of the PropertyRecorder.
-    See recorder.py for details.
-
-    @author: igoroya
-    @organization: HU Berlin
-    @copyright: cta-observatory.org
-    @version: $Id$
-    @change: $LastChangedDate$, $LastChangedBy$
-    """
-    #-------------------------------------------------------------------------
-
-    def __init__(self):
-        # TODO: the storage stuff should be removed
-        recorder.recorder.__init__(self)
-        self._checkThread = self._createComponentFindThread()
-        self._checkThread.start()
-        
-        "List of ACS components to use as include, or exclude list"
-        self.__predefinedComponents = []
-        '''If include mode, only the components considered in the scanning. 
-        If false, all the components deployed are considered except those in the list,
-        which will be excluded'''
-        
-
-    #-------------------------------------------------------------------------
-    def _scanForComps(self):
-        """
-        Scans the system, locate containers,
-        their components and their properties.
-        """
-
-        self.getlogger.logInfo("called...")
-
-        if (self._isFull):
-            self.getlogger.logInfo("property recorder is full, returning")
-            return
-
-        # try:
-        activatedComponents = self.availableComponents("*", "*", True)
-
-        nAvComps = len(activatedComponents)
-        self.getlogger.logInfo('found ' + str(nAvComps) + ' components')
-
-        # Check the availableComponent, only those which are already activated
-        countComp = 0
-        while (countComp < nAvComps):
-            componentId = self.findComponents("*", "*", True)[countComp]
-            self.getlogger.logInfo(
-                "inspecting component: " + str(componentId))
-            self.getlogger.logInfo("self name: " + str(self.getName()))
-
-            if not self.addComponent(componentId):
-                countComp = countComp + 1  # continue with the loop then
-                continue
-
-        self.getlogger.logInfo("done...")
-        
-
-    def _createComponentFindThread(self):
-        return standalone.ComponentFindThread(self)
-
-    #-------------------------------------------------------------------------
-    class ComponentFindThread(recorder.recorder.ComponentCheckThread):
-
-        """
-        Inner class defining a thread to the check components
-        Overriding recorder.recorder.ComponentCheckThread to scan
-        for new components as well.
-        """
-
-        def __init__(self, recorderInstance):
-            recorder.recorder.ComponentCheckThread.__init__(
-                self, recorderInstance)
-
-        def _run(self):
-            # First check if we lost any property
-            self._recorderInstance._checkLostComponents()
-            # now look for new properties
-            self._recorderInstance._scanForComps()
 
 
 
@@ -142,7 +57,6 @@ class FrontEnd(object):
         self._component_whatchdog = None
         
         self.recorder_config = recorder_config
-        
         
         self.logger = acs_client.getLogger()
         
@@ -208,7 +122,7 @@ class FrontEnd(object):
                 self.logger.logDebug("checking component: " + compName)
                 
                 try: 
-                    ComponentUtil.verify_component_state(comp_reference, compName)
+                    ComponentUtil.is_component_state_ok(comp_reference, compName)
                 except Exception:
                     #TODO: next item should not raise an error but a low level log. See how to do that
                     self.logger.exception(
@@ -220,7 +134,7 @@ class FrontEnd(object):
             length -= len(self._componentsMap)
 
             if length > 0:
-                self.logger.logInfo(
+                self.logger.logDebug(
                     "%d component(s) removed from the records" %
                     (length,))
             else:
@@ -252,7 +166,7 @@ class FrontEnd(object):
             self.logger.logDebug("No components active")
             return
         
-        self.logger.logInfo('found ' + str(n_components) + ' components')
+        self.logger.logDebug('found ' + str(n_components) + ' components')
 
         # Check the availableComponent, only those which are already activated
         for count_comp in (0, n_components -1 ):
@@ -263,7 +177,7 @@ class FrontEnd(object):
                 self.logger.logDebug("Number of components was reduced, returning")
                 return
             
-            self.logger.logInfo(
+            self.logger.logDebug(
                 "inspecting component: " + str(component_id))
 
             #If working in INCLUDE mode and it is in the include list, add it
@@ -560,7 +474,9 @@ class FrontEnd(object):
         cbMon = CBFactory.get_callback(
             acs_property,
             acs_property._get_name(),
-            my_buffer)
+            my_buffer,
+            self.logger
+            )
 
         # Activate the callback monitor
         cbMonServant = self.acs_client.activateOffShoot(cbMon)
@@ -622,8 +538,6 @@ class FrontEnd(object):
         """
         Sends signal to start recording data
         """
-
-        self.logger.logInfo("starting monitoring")
 
         if(self._isRecording.isSet()):
             self.logger.logInfo("monitoring already started")
@@ -693,7 +607,7 @@ class FrontEnd(object):
                 "component does not exist, nothing to be done")
             return
 
-        self.logger.logInfo("releasing component: " + component_id)
+        self.logger.logDebug("releasing component: " + component_id)
 
         self._remove_monitors(comp_info)
 
@@ -725,7 +639,7 @@ class FrontEnd(object):
         # loop over the componentMap
         # for compName, compInfo in self.__componentsMap().iteritems():
         for compName in self._componentsMap.keys():
-            self.logger.logInfo("deactivating component: " + compName)
+            self.logger.logDebug("deactivating component: " + compName)
 
             self._release_component(compName)
 

@@ -72,6 +72,9 @@ PROPERTY_ATTRIBUTES = [AttributeInfo(
                             'archive_priority', DecodeMethod.AST_LITERAL,
                             False, None),
                        AttributeInfo(
+                            'name', DecodeMethod.NONE,
+                            False, None),
+                       AttributeInfo(
                             'archive_min_int', DecodeMethod.AST_LITERAL,
                             True, None),
                        AttributeInfo(

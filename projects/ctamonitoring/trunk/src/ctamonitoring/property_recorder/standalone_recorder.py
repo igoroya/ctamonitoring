@@ -1,4 +1,12 @@
-__version__ = "$Id$"
+import logging
+import argparse
+import ast
+import pprint
+from Acspy.Clients.SimpleClient import PySimpleClient
+from ctamonitoring.property_recorder.config import RecorderConfig
+from ctamonitoring.property_recorder.front_end import FrontEnd
+from ctamonitoring.property_recorder.config import BackendType
+from ctamonitoring.property_recorder.util import EnumUtil
 '''
 Module with all what is related to the configuration holding for the property 
 recorder frontend
@@ -15,16 +23,9 @@ This is a version of the property recorder that is run as an application and not
 In primary meant for test but may be useful later also to run as an alternative for the component version
 '''
 
-import argparse
-import ast
-#from pprint import pprint
-import pprint
 
-from Acspy.Clients.SimpleClient import PySimpleClient
-from ctamonitoring.property_recorder.config import RecorderConfig
-from ctamonitoring.property_recorder.front_end import FrontEnd
-from ctamonitoring.property_recorder.config import BackendType
-from ctamonitoring.property_recorder.util import EnumUtil
+
+__version__ = "$Id$"
 
 
 
@@ -52,7 +53,7 @@ class ValidBackendAction(argparse.Action):
             parser.error("'%s' is not a valid backend type. Allowed values are: '%s'" % (values, allowed))
             #raise argparse.ArgumentError("Minimum bandwidth is 12")
 
-        setattr(namespace, self.dest, EnumUtil.fromString(BackendType, values))
+        setattr(namespace, self.dest, EnumUtil.from_string(BackendType, values))
 
 
 
@@ -103,7 +104,6 @@ class RecorderParser(object):
                         ', using the provided list with --components as the "exclude list". '
                         'Used by default')   
         argparser.set_defaults(is_include_mode=False)
-        
         argparser.add_argument('--components', action = 'store',
                         dest='components', type = list, 
                         help='The include or exclude list, depending on the --is_include_mode value, '
@@ -120,7 +120,11 @@ class RecorderParser(object):
                         dest='component_list', type = str,
                         help='The include or exclude list, using the Python encoding depending '
                             'of component represented by their string names. '
-                            'on the include_mode, e.g. "'+str(['Component1', 'Component2']) + '"')                        
+                            'on the include_mode, e.g. "'+str(['Component1', 'Component2']) + '"')
+        argparser.add_argument('-v', dest='verbose', action='store_true',
+                        help='to display in the console debug level messages')
+        argparser.add_argument('-vv', dest='more_verbose', action='store_true',
+                        help='to display in the console for all level messages')                    
   
         if cmdline is not None:
             args = argparser.parse_args(cmdline)
@@ -130,6 +134,22 @@ class RecorderParser(object):
         
         #self._args = vars(argparser.parse_args())
         self._args = vars(args)
+   
+    def get_verbosity(self):
+        '''
+        Gets the verbosity level of the logs provided by standalone recorder
+        console
+        
+        
+        @return: verbosity level 
+        @rtype: int 
+        '''
+        if 'more_verbose'  in self._args :
+            return 0
+        elif 'verbose'  in self._args :
+            return logging.DEBUG
+        else:
+            return logging.INFO
    
     def feed_config(self): 
         '''
@@ -161,32 +181,37 @@ class RecorderParser(object):
     
 class StandaloneRecorder(object):
 
-    def __init__(self, recorder_config):
+    def __init__(self, recorder_config, verbosity):
         '''
         @var recorder_config: the configuration of the recorder
         @type recorder_config: RecorderConfig
         '''
         
+        
         # Create the ACS simple client. This allows the communication with ACS
         self._my_acs_client = PySimpleClient()
+        
+        self._logger = self._my_acs_client.getLogger()
+        
+        self._logger.setLevel(verbosity)
        
         self.recorder_config = recorder_config
         #create recorder object 
 
         self.recorder = FrontEnd(recorder_config, self._my_acs_client)
         
-        self._my_acs_client.getLogger().info('Property recorder up')
+        self._logger.info('Property recorder up')
 
     def start(self):
         self.recorder.start_recording()
-        self._my_acs_client.getLogger().info('Recording start')
+        self._logger.info('Recording start')
         
     def stop(self):
         self.recorder.stop_recording()
-        self._my_acs_client.getLogger().info('Recording stop')
+        self._logger.info('Recording stop')
 
     def __del__(self):
-        self._my_acs_client.getLogger().info('Switching off property recorder')
+        self._logger.info('Switching off property recorder')
         self.stop()
         self.recorder = None
         self.recorder_config = None
@@ -195,7 +220,7 @@ class StandaloneRecorder(object):
 
     def print_config(self):
         
-        self._my_acs_client.getLogger().debug(
+        self._logger.debug(
                 'Property Recorder Configuration'
                 '\n--------------------------------------\n' +
                 pprint.pformat(vars(self.recorder_config)) +
@@ -209,9 +234,14 @@ if __name__ == "__main__":
     #Configure
     parser = RecorderParser()
     recorder_config = parser.feed_config()
+    verbosity = parser.get_verbosity()
+
 
     #Create a recorder. 
-    recorder = StandaloneRecorder(recorder_config)
+    recorder = StandaloneRecorder(recorder_config, verbosity)
+    
+    
+    
     
     #Show the configuration
     recorder.print_config()    

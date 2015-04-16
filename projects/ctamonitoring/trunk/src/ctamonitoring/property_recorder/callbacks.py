@@ -51,7 +51,7 @@ class BaseArchCB:
 
     '''
 
-    def __init__(self, property_name, backend_buffer):
+    def __init__(self, property_name, backend_buffer, logger=None):
         '''
         Constructor.
 
@@ -78,7 +78,11 @@ class BaseArchCB:
         else:
             self.backend_buffer = backend_buffer
 
-        self._logger = getLogger('ctamonitoring.property_recorder.callbacks')
+        if logger is None:
+            logger = getLogger('ctamonitoring.property_recorder.callbacks')
+
+
+        self._logger = logger
 
         # Flag for the application to check if the action is still going on
         # and if the callback has arrived.
@@ -223,7 +227,7 @@ class ArchCBlong(BaseArchCB, ACS__POA.CBlong):  # @UndefinedVariable
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBlongSeq(BaseArchCB, ACS__POA.CBlongSeq):  # @UndefinedVariable
@@ -236,7 +240,7 @@ class ArchCBlongSeq(BaseArchCB, ACS__POA.CBlongSeq):  # @UndefinedVariable
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBuLong(BaseArchCB, ACS__POA.CBuLong):  # @UndefinedVariable
@@ -250,7 +254,7 @@ class ArchCBuLong(BaseArchCB, ACS__POA.CBuLong):  # @UndefinedVariable
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBuLongSeq(BaseArchCB, ACS__POA.CBuLongSeq):  # @UndefinedVariable
@@ -264,7 +268,7 @@ class ArchCBuLongSeq(BaseArchCB, ACS__POA.CBuLongSeq):  # @UndefinedVariable
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBlongLong(BaseArchCB, ACS__POA.CBlongLong):  # @UndefinedVariable
@@ -278,7 +282,7 @@ class ArchCBlongLong(BaseArchCB, ACS__POA.CBlongLong):  # @UndefinedVariable
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBuLongLong(
@@ -293,7 +297,7 @@ class ArchCBuLongLong(
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBdouble(BaseArchCB, ACS__POA.CBdouble):  # @UndefinedVariable
@@ -307,7 +311,7 @@ class ArchCBdouble(BaseArchCB, ACS__POA.CBdouble):  # @UndefinedVariable
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBdoubleSeq(
@@ -322,7 +326,7 @@ class ArchCBdoubleSeq(
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBstring(BaseArchCB, ACS__POA.CBstring):  # @UndefinedVariable
@@ -336,7 +340,7 @@ class ArchCBstring(BaseArchCB, ACS__POA.CBstring):  # @UndefinedVariable
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBstringSeq(
@@ -351,7 +355,7 @@ class ArchCBstringSeq(
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBpatternValueRep(
@@ -368,7 +372,7 @@ class ArchCBpatternValueRep(
         Constructor.
 
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBpatternStringRep(
@@ -487,7 +491,7 @@ class ArchCBfloat(
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBfloatSeq(
@@ -503,7 +507,7 @@ class ArchCBfloatSeq(
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBbool(
@@ -519,7 +523,7 @@ class ArchCBbool(
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBboolSeq(
@@ -536,7 +540,7 @@ class ArchCBboolSeq(
         Constructor.
 
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class ArchCBonOffSwitch(
@@ -552,7 +556,7 @@ class ArchCBonOffSwitch(
         '''
         Constructor.
         '''
-        BaseArchCB.__init__(self, name, backend_buffer)
+        BaseArchCB.__init__(self, name, backend_buffer, logger)
 
 
 class CBFactory():
@@ -611,7 +615,7 @@ class CBFactory():
     __cbMap[constants.RWONOFFSWITCH_NP_REP_ID] = None
 
     @staticmethod
-    def get_callback(prop, prop_name, monitorBuffer):
+    def get_callback(prop, prop_name, monitorBuffer, logger=None):
         '''
         Static factory method that returns the callback adequate to
         the property
@@ -622,18 +626,22 @@ class CBFactory():
         @type: ctamonitoring.property_recorder.backend.dummy.registry.Buffer
         @raise UnsupporterPropertyTypeError: If the property type
                                              is not supported
+        @param logger ACS logger
+        @type Acspy.Common.Log.Logger
         '''
+        if logger is None:
+            logger = getLogger('ctamonitoring.property_recorder.callbacks')
         try:
             if CBFactory.__cbMap[prop._NP_RepositoryId] is None:
                 raise UnsupporterPropertyTypeError(prop._NP_RepositoryId)
             else:
                 return (
                     CBFactory.__cbMap[prop._NP_RepositoryId](
-                        prop_name, monitorBuffer)
+                        prop_name, monitorBuffer, logger)
                 )
         # If key error, then it is probably an enum
         except KeyError:
-            getLogger('ctamonitoring.property_recorder.callbacks').debug(
+            logger.debug(
                 "no NP_RepositoryID, "
                 "property type candidate: enum")
             return (

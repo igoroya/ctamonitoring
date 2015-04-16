@@ -151,9 +151,12 @@ class PropertyTypeUtil():
         this is typically happening with pattern
         properties OR when the property exists in the CDB
         but it is not implemented in the component
+        
+        The 'hack' tries to get_sync the value of the property.
+        When it fails, we can know that the property is not in a correct state
         '''
         try:
-            (acs_property.get_sync()[0])
+            acs_property.get_sync()
         except Exception:
             return False        
         else:
@@ -168,6 +171,7 @@ class PropertyTypeUtil():
         attributes - property attributes for"archive_delta" or "archive_delta_percent"
         '''
         if (archive_delta is None 
+              or archive_delta == False
               or archive_delta == "0"
               or archive_delta == "0.0"
               or archive_delta == 0
@@ -179,25 +183,13 @@ class PropertyTypeUtil():
             return True
     
 
-#TODO: Will becme redundant, remove when possible
-class DecodeUtil():
-    '''
-    Holds utilities to decode data from the CDB
-    '''
-    @staticmethod
-    def try_utf8(data):
-        "Returns a Unicode object on success, or None on failure"
-        try:
-            return data.decode('utf-8')
-        except UnicodeDecodeError:
-            return None
-        
+       
 class ComponentUtil(object):
     '''
     Used to determine if a component is characteristic,
     and if it is Python.
     
-    Encapsulates some "hacking" wich could be oplimized later  
+    Encapsulates some "hacking" which could be oplimized later  
     '''
 
     @staticmethod
@@ -231,7 +223,7 @@ class ComponentUtil(object):
         return (component._NP_RepositoryId == constants.RECORDER_NP_REP_ID)
     
     @staticmethod                
-    def verify_component_state(comp_reference, component_id):
+    def is_component_state_ok(comp_reference, component_id):
         '''
         Check if the component is still operational
         
@@ -243,8 +235,7 @@ class ComponentUtil(object):
         ComponenNotFoundError -- component is not present
         WrongComponenStateError -- component is present, but in wrong state
         '''
-        
-            
+                    
         state = None
        
         try:
@@ -282,7 +273,7 @@ class AttributeDecoder(object):
         This is used with variables can be strings or numbers
         '''
         try: 
-            return AttributeDecoder.decode_ast_literal(value)
+            return AttributeDecoder._decode_ast_literal(value)
         #If exception then it is a string
         except Exception:
             return value
@@ -295,17 +286,24 @@ class AttributeDecoder(object):
             return value.decode('utf-8')
         except UnicodeDecodeError:
             return None
+   
     @staticmethod
     def decode_attribute(value, decode_method):
         '''
         Picks the correct decoding method
         Raises an exception when the decoding method is not supported
         '''
-        if decode_method is DecodeMethod.NONE : return AttributeDecoder._decode_none(value)
-        elif decode_method is DecodeMethod.AST_LITERAL : return AttributeDecoder._decode_ast_literal(value)
-        elif decode_method is DecodeMethod.AST_LITERAL_HYBRID : return AttributeDecoder._decode_ast_literal_hybrid(value)
-        elif decode_method is DecodeMethod.UTF8 : AttributeDecoder._decode_utf8(value)
-        else: raise ValueError("decode_method is not supported") 
+        if decode_method is DecodeMethod.NONE:
+            return AttributeDecoder._decode_none(value)
+        elif decode_method is DecodeMethod.AST_LITERAL:
+            return AttributeDecoder._decode_ast_literal(value)
+        elif decode_method is DecodeMethod.AST_LITERAL_HYBRID:
+            return AttributeDecoder._decode_ast_literal_hybrid(value)
+        elif decode_method is DecodeMethod.UTF8: 
+            return AttributeDecoder._decode_utf8(value)
+        else: 
+            raise ValueError("decode_method is not supported") 
+   
     @staticmethod
     def decode_boolean(value):    
         '''
@@ -313,21 +311,24 @@ class AttributeDecoder(object):
         otherwise None
         '''
         try:
-            return AttributeDecoder._decode_ast_literal(value.title())
+            decoded = AttributeDecoder._decode_ast_literal(value.title())
         except Exception:
-            return None    
+            raise ValueError("could not decode value") 
+        if type(decoded) is not bool:
+            raise TypeError("decoded value is not boolean")
+        return decoded
         
 class EnumUtil(object):
     
     @staticmethod
-    def fromString(enum_type, name):
+    def from_string(enum_type, name):
         '''
-        To obtain the enum object from  astring rep.
+        To obtain the enum object from a string rep.
         
         Raises ValueError if type/value not recognized
         '''
         return enum_type._values[enum_type._keys.index(name)]
 
     @staticmethod
-    def toString(enum_value):
+    def to_string(enum_value):
         return enum_value.key

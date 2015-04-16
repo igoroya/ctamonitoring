@@ -246,6 +246,12 @@ class PropertyAttributeHandler(object):
         '''
 
         try:
+            # first check if it exists (otherwise the container would warning 
+            # if attribute is not existing when using 
+            # get_characteristic_by_name)
+            if len(acs_property.find_characteristic(
+                            attribute.name)) is 0:
+                return None  
             raw_value = acs_property.get_characteristic_by_name(
                 attribute.name).value()
         except NoSuchCharacteristic:
@@ -274,8 +280,13 @@ class PropertyAttributeHandler(object):
                 raw_value, attribute.decoding)
         except ValueError:
             # In the case of boolean properties, the archive_delta and some other attributes 
-            # Are is boolean and the decoding fails we try to catch it here
-            value = AttributeDecoder.decode_boolean(raw_value)
+            # If is boolean and the decoding fails we try to catch it here
+            try: 
+                value = AttributeDecoder.decode_boolean(raw_value)
+            except ValueError:
+                value = None
+            except TypeError:
+                value = None
         except Exception:
             logger.exception("")
             value = None
