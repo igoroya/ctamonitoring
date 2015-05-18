@@ -24,7 +24,6 @@ It defines classes_and_methods
 @requires: optparse
 @requires: Queue
 @requires: random
-@requires: time
 '''
 
 import math
@@ -42,14 +41,18 @@ from pymongo import MongoClient
 from random import seed as randseed
 from random import uniform
 from random import random
-from time import sleep
 
 
 __all__ = []
-__version__ = "$Revision$".split()[1]
+__version__ = \
+    "$Revision$".split()[1]
 __date__ = "2014-01-06"
-__updated__ = "$LastChangedDate$".split()[1]
+__updated__ = \
+    "$LastChangedDate$" \
+    .split()[1]
 
+
+HOST = "localhost"
 SEED = None
 DEBUG = 0
 
@@ -69,7 +72,7 @@ class DatetimeOption(Option):
 
 
 class Property(object):
-    def __init__(self, pid, period, min, max, nxt_bin = None, lst_end = None):
+    def __init__(self, pid, period, min, max, nxt_bin=None, lst_end=None):
         self.pid = pid
         self.period = period
         self.min = min
@@ -80,10 +83,10 @@ class Property(object):
 
 class Statistics(object):
     def __init__(self,
-                 bin = None, nxt_bin = None, begin = None, end = None,
-                 systems = [], n_props = 0,
-                 n_bins = 0, n_chunks = 0, n_data_points = 0,
-                 realtime = False):
+                 bin=None, nxt_bin=None, begin=None, end=None,
+                 systems=[], n_props=0,
+                 n_bins=0, n_chunks=0, n_data_points=0,
+                 realtime=False):
         self.bin = bin
         self.nxt_bin = nxt_bin
         self.begin = begin
@@ -103,33 +106,33 @@ def get_total_seconds(td):
 
 def get_floor(tm, td):
     tmp = tm - datetime.min
-    tmp = timedelta(seconds = ((get_total_seconds(tmp) //
-                                get_total_seconds(td)) *
-                               get_total_seconds(td)))
+    tmp = timedelta(seconds=((get_total_seconds(tmp) //
+                              get_total_seconds(td)) *
+                             get_total_seconds(td)))
     return datetime.min + tmp
 
 
 class DBScheduler(threading.Thread):
     def __init__(self,
-                 queue_out, queue_in, bin_size):
+                 queue_out, queue_in, chunk_size):
         super(DBScheduler, self).__init__()
         self._queue_out = queue_out
         self._queue_in = queue_in
-        self._bin_size = bin_size
+        self._chunk_size = chunk_size
         self._do_flush = threading.Event()
         self._do_flush.clear()
         self.daemon = True
         self.start()
-    
+
     def flush(self):
         self._do_flush.set()
-    
+
     def _flush(self, n):
         if n:
             self._queue_out.join()
             for i in range(n):
                 self._queue_in.task_done()
-    
+
     def run(self):
         lst_bin = None
         n_chunks = 0
@@ -137,8 +140,8 @@ class DBScheduler(threading.Thread):
         while True:
             while True:
                 try:
-                    bin, chunk, n_dp = self._queue_in.get(block = True,
-                                                          timeout = 10)
+                    bin, chunk, n_dp = self._queue_in.get(block=True,
+                                                          timeout=10)
                     break
                 except Queue.Empty:
                     if self._do_flush.is_set():
@@ -148,21 +151,18 @@ class DBScheduler(threading.Thread):
             if lst_bin != bin:
                 if nxt_tm is None:
                     now = datetime.now()
-                    nxt_tm = get_floor(now, self._bin_size)
+                    nxt_tm = get_floor(now, self._chunk_size)
                     if now > nxt_tm:
-                        nxt_tm += self._bin_size
+                        nxt_tm += self._chunk_size
                 else:
                     self._flush(n_chunks)
                     n_chunks = 0
                     now = datetime.now()
                 if now < nxt_tm:
-                    #print "it's now %s... sleep until %s" % (str(now),
-                    #                                         str(nxt_tm))
                     time.sleep(get_total_seconds(nxt_tm - now))
-                #else: print "it's now %s" % (str(now),)
-                nxt_tm += self._bin_size
+                nxt_tm += self._chunk_size
                 lst_bin = bin
-            self._queue_out.put((bin, chunk, n_dp), block = True)
+            self._queue_out.put((bin, chunk, n_dp), block=True)
             n_chunks += 1
 
 
@@ -184,27 +184,24 @@ class DBInserter(threading.Thread):
         self._force = False
         self.daemon = True
         self.start()
-    
+
     def _send_stats(self):
         stats = {
-                 "bin" : self._stats.bin,
-                 "begin" : self._stats.begin,
-                 "end" : self._stats.end,
-                 "delta_t" : get_total_seconds(self._stats.end -
-                                               self._stats.begin),
-                 "systems" : self._stats.systems,
-                 "n_params" : self._stats.n_props,
-                 "n_bins" : self._stats.n_bins,
-                 "n_chunks" : self._stats.n_chunks,
-                 "n_data_points" : self._stats.n_data_points,
-                 "realtime" : self._stats.realtime
-              }
-        #print stats
+            "bin": self._stats.bin,
+            "begin": self._stats.begin,
+            "end": self._stats.end,
+            "delta_t": get_total_seconds(self._stats.end - self._stats.begin),
+            "systems": self._stats.systems,
+            "n_props": self._stats.n_props,
+            "n_bins": self._stats.n_bins,
+            "n_chunks": self._stats.n_chunks,
+            "n_data_points": self._stats.n_data_points,
+            "realtime": self._stats.realtime, }
         self._stats_col.insert(stats)
         self._stats.n_bins = 0
         self._stats.n_chunks = 0
         self._stats.n_data_points = 0
-    
+
     def _send_chunks(self):
         self._chunks_col.insert(self._chunks)
         for i in range(len(self._chunks)):
@@ -216,15 +213,15 @@ class DBInserter(threading.Thread):
         self._stats.n_data_points += self._n_data_points
         self._n_data_points = 0
         self._force = False
-    
+
     def run(self):
         lst_bin = None
         while True:
             try:
-                bin, chunk, n_dp = self._queue_in.get(block = not self._chunks)
+                bin, chunk, n_dp = self._queue_in.get(block=not self._chunks)
                 if lst_bin != bin:
                     self._n_bins += 1
-                    if bin == bin.replace(minute = 0, second = 0, microsecond = 0):
+                    if bin == bin.replace(minute=0, second=0, microsecond=0):
                         self._stats.bin = self._stats.nxt_bin
                         self._stats.nxt_bin = bin
                         self._stats.begin = self._stats.end
@@ -247,64 +244,92 @@ def acquire_systems(sys_col, sys_locks, systems, props_col, n_props):
     if(systems):
         for system in systems:
             print "locking %s" % (system,)
-            s = sys_col.find_and_modify({"system name" : system,
-                                         "$or" : [{"lock" : {"$exists" : False}},
-                                                  {"lock" : None}]},
-                                        {"$set" : {"lock" : lock_tm}},
-                                        sort=[("random",pymongo.ASCENDING)])
+            s = sys_col.find_and_modify(
+                {
+                    "system_name": system,
+                    "$or": [
+                        {"lock": {"$exists": False}},
+                        {"lock": None}
+                    ]
+                },
+                {
+                    "$set": {"lock": lock_tm}
+                },
+                sort=[("random", pymongo.ASCENDING)]
+            )
             if not s:
                 raise RuntimeError("%s is not available" % (system,))
-            sys_locks.append({"name" : system, "tm" : lock_tm})
+            sys_locks.append({"name": system, "tm": lock_tm})
     elif n_props:
         n_total = 0
         while n_total < n_props:
             print "locking system..."
-            s = sys_col.find_and_modify({"$or" : [{"lock" : {"$exists" : False}},
-                                                  {"lock" : None}]},
-                                        {"$set" : {"lock" : lock_tm}},
-                                        sort=[("random",pymongo.ASCENDING)])
+            s = sys_col.find_and_modify(
+                {
+                    "$or": [
+                        {"lock": {"$exists": False}},
+                        {"lock": None}
+                    ]
+                },
+                {
+                    "$set": {"lock": lock_tm}
+                },
+                sort=[("random", pymongo.ASCENDING)])
             if not s and not sys_locks:
                 raise RuntimeError("no system available")
             if not s:
                 break
-            if s.has_key("system name") and s["system name"] is not None:
-                sys_locks.append({"name" : s["system name"],
-                                  "tm" : lock_tm})
-                n = props_col.find({"system name" : s["system name"]}).count()
-                print "%s adds %d properties" % (s["system name"], n)
+            if "system_name" in s and s["system_name"] is not None:
+                sys_locks.append({"name": s["system_name"], "tm": lock_tm})
+                n = props_col.find(
+                    {
+                        "system_name": s["system_name"]
+                    }
+                ).count()
+                print "%s adds %d properties" % (s["system_name"], n)
             else:
-                sys_locks.append({"name" : None, "tm" : lock_tm})
-                n = props_col.find({"$or" : [{"system name" : {"$exists" : False}},
-                                             {"system name" : None}]}).count()
+                sys_locks.append({"name": None, "tm": lock_tm})
+                n = props_col.find(
+                    {
+                        "$or": [
+                            {"system_name": {"$exists": False}},
+                            {"system_name": None}
+                        ]
+                    }
+                ).count()
                 print "independent components add %d properties" % (n,)
             n_total += n
 
 
-def acquire_properties(sys_locks, props_col, begin, chunks_col, bin_size):
+def acquire_properties(sys_locks, props_col, begin, chunks_col, chunk_size):
     properties = []
     first_bin = None
     for system in sys_locks:
         if system["name"] is not None:
-            query = {"system name" : system["name"]}
+            query = {"system_name": system["name"]}
         else:
-            query = {"$or" : [{"system name" : {"$exists" : False}},
-                              {"system name" : None}]}
-        for property in props_col.find(query):
-            pid = property["_id"]
-            period = property["meta"]["period"]
-            graph_min = property["meta"]["graph_min"]
-            graph_max = property["meta"]["graph_max"]
+            query = {
+                "$or": [
+                    {"system_name": {"$exists": False}},
+                    {"system_name": None}
+                ]
+            }
+        for prop in props_col.find(query):
+            pid = prop["_id"]
+            period = prop["meta"]["period"]
+            graph_min = prop["meta"]["graph_min"]
+            graph_max = prop["meta"]["graph_max"]
             lst_end = (begin -
-                       timedelta(seconds = uniform(0, period)))
-            chunks = chunks_col.find({"pid" : pid}) \
+                       timedelta(seconds=uniform(0, period)))
+            chunks = chunks_col.find({"pid": pid}) \
                                .sort("bin", pymongo.DESCENDING) \
                                .limit(1)
             if chunks.count():
                 chunk = chunks.next()
-                nxt_bin = chunk["bin"] + bin_size
+                nxt_bin = chunk["bin"] + chunk_size
                 if nxt_bin >= begin:
                     p = Property(pid,
-                                 timedelta(seconds = period),
+                                 timedelta(seconds=period),
                                  graph_min,
                                  graph_max,
                                  nxt_bin,
@@ -313,7 +338,7 @@ def acquire_properties(sys_locks, props_col, begin, chunks_col, bin_size):
                         first_bin = nxt_bin
                 else:
                     p = Property(pid,
-                                 timedelta(seconds = period),
+                                 timedelta(seconds=period),
                                  graph_min,
                                  graph_max,
                                  begin,
@@ -321,7 +346,7 @@ def acquire_properties(sys_locks, props_col, begin, chunks_col, bin_size):
                     first_bin = begin
             else:
                 p = Property(pid,
-                             timedelta(seconds = period),
+                             timedelta(seconds=period),
                              graph_min,
                              graph_max,
                              begin,
@@ -336,85 +361,104 @@ def release_systems(sys_col, sys_locks):
     for sys_lock in sys_locks:
         if sys_lock["name"] is not None:
             print "releasing %s" % (sys_lock["name"],)
-            s = sys_col.find_and_modify({"system name" : sys_lock["name"],
-                                         "$and" : [{"lock" : {"$exists" : True}},
-                                                   {"lock" : sys_lock["tm"]}]},
-                                        {"$set" : {"lock" : None,
-                                                   "random" : random()}})
+            s = sys_col.find_and_modify(
+                {
+                    "system_name": sys_lock["name"],
+                    "$and": [
+                        {"lock": {"$exists": True}},
+                        {"lock": sys_lock["tm"]}
+                    ]
+                },
+                {
+                    "$set": {"lock": None, "random": random()}
+                }
+            )
         else:
             print "releasing independent components"
-            s = sys_col.find_and_modify({"$or" : [{"system name" : {"$exists" : False}},
-                                                  {"system name" : None}],
-                                         "$and" : [{"lock" : {"$exists" : True}},
-                                                   {"lock" : sys_lock["tm"]}]},
-                                        {"$set" : {"lock" : None,
-                                                   "random" : random()}})
-        if not s: sys_not_locked.append(sys_lock["name"])
+            s = sys_col.find_and_modify(
+                {
+                    "$or": [
+                        {"system_name": {"$exists": False}},
+                        {"system_name": None}
+                    ],
+                    "$and": [
+                        {"lock": {"$exists": True}},
+                        {"lock": sys_lock["tm"]}
+                    ]
+                },
+                {
+                    "$set": {"lock": None, "random": random()}
+                }
+            )
+        if not s:
+            sys_not_locked.append(sys_lock["name"])
     if sys_not_locked:
         if len(sys_not_locked) > 1:
-            raise RuntimeError("oups, %s weren't locked anymore"
-                               % ((", ").join(str(sys_not_locked)),))
+            raise RuntimeError("oups, %s weren't locked anymore" %
+                               ((", ").join(str(sys_not_locked)),))
         else:
-            raise RuntimeError("oups, %s wasn't locked anymore"
-                               % (str(sys_not_locked[0]),))
+            raise RuntimeError("oups, %s wasn't locked anymore" %
+                               (str(sys_not_locked[0]),))
 
-def main(argv = None):
+
+def main(argv=None):
     randseed(SEED)
-    
+
     program_name = os.path.basename(sys.argv[0])
     program_version = "%s" % __version__
     program_build_date = "%s" % __updated__
     program_version_string = "%%prog %s (%s)" % (program_version,
                                                  program_build_date)
-    program_longdesc = '''''' # optional - give further explanation about what the program does
-    program_desc = '''''' # optional - give further explanation about what the program does
-    
+    # optional - give further explanation about what the program does
+    program_longdesc = ''''''
+    # optional - give further explanation about what the program does
+    program_desc = ''''''
     if argv is None:
         argv = sys.argv[1:]
     try:
         # setup option parser
-        parser = OptionParser(version = program_version_string,
-                              epilog = program_longdesc,
-                              description = program_desc,
-                              option_class = DatetimeOption)
-        parser.add_option("--host", dest = "host",
-                          help = "hostname or IP address of the MongoDB server "
+        parser = OptionParser(version=program_version_string,
+                              epilog=program_longdesc,
+                              description=program_desc,
+                              option_class=DatetimeOption)
+        parser.add_option("--host", dest="host",
+                          help="hostname or IP address of the MongoDB server "
                           "[default: %default]")
-        parser.add_option("-p", "--port", dest = "port", type = "int",
-                          help = "port number on which to connect "
+        parser.add_option("-p", "--port", dest="port", type="int",
+                          help="port number on which to connect "
                           "[default: %default]")
-        parser.add_option("-s", "--system", dest = "systems", action = "append",
+        parser.add_option("-s", "--system", dest="systems", action="append",
                           help="system(s) to create data for [default: none]",
-                          metavar = "NAME")
-        parser.add_option("-n", "--nprops", dest = "n_props", type = "int",
+                          metavar="NAME")
+        parser.add_option("-n", "--nprops", dest="n_props", type="int",
                           help="approx. integral number of properties to "
                           "create data for [default: %default] if, "
                           "no system is specified")
-        parser.add_option("-b", "--begin", dest = "begin", type ="datetime",
-                          help = "start date to create data from "
+        parser.add_option("-b", "--begin", dest="begin", type="datetime",
+                          help="start date to create data from "
                           "[default: %default]",
-                          metavar = "DATE")
-        parser.add_option("-d", "--days", dest = "days", type = "int",
-                          help = "days that are added to 'begin' "
+                          metavar="DATE")
+        parser.add_option("-d", "--days", dest="days", type="int",
+                          help="days that are added to 'begin' "
                           "to determine the stop date [default: %default]")
-        parser.add_option("--binsize", dest = "bin_size", type = "int",
-                          help = "bin size in seconds [default: %default]",
-                          metavar = "SECONDS")
-        parser.add_option("--realtime", dest = "realtime", action="store_true",
-                          help = "run data generation in realtime")
-        
+        parser.add_option("--chunksize", dest="chunk_size", type="int",
+                          help="chunk size in seconds [default: %default]",
+                          metavar="SECONDS")
+        parser.add_option("--realtime", dest="realtime", action="store_true",
+                          help="run data generation in realtime")
+
         # set defaults
-        parser.set_defaults(host = "zoja", port = 27017,
-                            n_props = 15000,
-                            begin = "2013-10-01", days = 1,
-                            bin_size = 60,
-                            realtime = False)
-        
+        parser.set_defaults(host=HOST, port=27017,
+                            n_props=15000,
+                            begin="2013-10-01", days=1,
+                            chunk_size=60,
+                            realtime=False)
+
         # process options
         (opts, args) = parser.parse_args(argv)
-        end = opts.begin + timedelta(days = opts.days)
-        bin_size = timedelta(seconds = opts.bin_size)
-        
+        end = opts.begin + timedelta(days=opts.days)
+        chunk_size = timedelta(seconds=opts.chunk_size)
+
         print "-" * 40
         print "host = %s" % (opts.host,)
         print "port = %d" % (opts.port,)
@@ -424,17 +468,18 @@ def main(argv = None):
             print "nprops = %d" % (opts.n_props,)
         print "begin = %s" % (str(opts.begin),)
         print "end = %s" % (str(end),)
-        print "binsize = %s" % (str(bin_size),)
-        if opts.realtime: print "realtime generation"
-        
+        print "chunksize = %s" % (str(chunk_size),)
+        if opts.realtime:
+            print "realtime generation"
+
         # connect to db server, db and collections
         client = MongoClient(opts.host, opts.port)
-        db = client.monitest
+        db = client.ctamonitoringtest
         chunks_collection = db.chunks
         properties_collection = db.properties
         statistics_collection = db.statistics
         systems_collection = db.systems
-        
+
         system_locks = []
         try:
             # prepare data creation
@@ -445,14 +490,12 @@ def main(argv = None):
                                                        properties_collection,
                                                        opts.begin,
                                                        chunks_collection,
-                                                       bin_size)
+                                                       chunk_size)
             if properties:
                 print "-" * 40
                 print "nprops = %d" % (len(properties),)
                 print "firstbin = %s" % (str(first_bin),)
                 bin = first_bin
-                #end = opts.begin + timedelta(hours = 1)
-                #end = first_bin + timedelta(hours = 9)
                 statistics = Statistics()
                 statistics.systems = [s["name"] for s in system_locks]
                 statistics.n_props = len(properties)
@@ -465,50 +508,47 @@ def main(argv = None):
                                              statistics, queue)
                 else:
                     queue_out = Queue.Queue(math.ceil(1.1 * len(properties)))
-                    db_scheduler = DBScheduler(queue_out, queue, bin_size)
+                    db_scheduler = DBScheduler(queue_out, queue, chunk_size)
                     db_inserter = DBInserter(statistics_collection,
                                              chunks_collection,
                                              statistics, queue_out)
                     wait = max(wait, math.ceil(1.1 *
-                                               get_total_seconds(bin_size)))
+                                               get_total_seconds(chunk_size)))
                 while bin < end:
-                    #print str(bin)
-                    for property in properties:
-                        if property.nxt_bin > bin:
-                            #print "oups"
+                    for prop in properties:
+                        if prop.nxt_bin > bin:
                             continue
-                        property.nxt_bin = bin + bin_size
+                        prop.nxt_bin = bin + chunk_size
                         values = []
-                        t = property.lst_end
+                        t = prop.lst_end
                         while True:
-                            t += property.period
-                            if t >= property.nxt_bin:
+                            t += prop.period
+                            if t >= prop.nxt_bin:
                                 break
-                            val = uniform(property.min, property.max)
-                            values.append({"t" : t, "val" : val})
+                            val = uniform(prop.min, prop.max)
+                            values.append({"t": t, "val": val})
                         if not values:
-                            #print "oups"
                             continue
-                        property.lst_end = values[-1]["t"]
+                        prop.lst_end = values[-1]["t"]
                         chunk = {
-                                 "begin" : values[0]["t"],
-                                 "end" : property.lst_end,
-                                 "values" : values,
-                                 "bin" : bin,
-                                 "pid" : property.pid
-                                }
+                            "begin": values[0]["t"],
+                            "end": prop.lst_end,
+                            "values": values,
+                            "bin": bin,
+                            "pid": prop.pid
+                        }
                         while True:
                             try:
                                 queue.put((bin, chunk, len(values)),
-                                          block = True, timeout = wait)
+                                          block=True, timeout=wait)
                                 break
                             except Queue.Full:
                                 if (opts.realtime and
-                                    not db_scheduler.is_alive()):
+                                        not db_scheduler.is_alive()):
                                     raise
                                 if not db_inserter.is_alive():
                                     raise
-                    bin += bin_size
+                    bin += chunk_size
                 print "-" * 40
                 print "flushing..."
                 if opts.realtime:
