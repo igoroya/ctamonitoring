@@ -134,6 +134,7 @@ class RecorderParser(object):
         
         #self._args = vars(argparser.parse_args())
         self._args = vars(args)
+      
    
     def get_verbosity(self):
         '''
@@ -196,6 +197,8 @@ class StandaloneRecorder(object):
         
         self._logger.setLevel(verbosity)
        
+        self._canceled = False 
+       
         self.recorder_config = recorder_config
         #create recorder object 
 
@@ -204,20 +207,39 @@ class StandaloneRecorder(object):
         self._logger.info('Property recorder up')
 
     def start(self):
+        if self._canceled:
+            raise RuntimeError("The recorded is cancelled")
+        
         self.recorder.start_recording()
         self._logger.info('Recording start')
         
     def stop(self):
+        if self._canceled:
+            raise RuntimeError("The recorded is cancelled")
         self.recorder.stop_recording()
         self._logger.info('Recording stop')
+        
+    def close(self):
+        if not self._canceled:
+            self._logger.info('Switching off property recorder')
+            self.stop()
+            self.recorder.cancel()
+            self.recorder = None
+            self.recorder_config = None
+            self._my_acs_client.disconnect()
+            self._my_acs_client = None
+            self._canceled = True
 
     def __del__(self):
-        self._logger.info('Switching off property recorder')
-        self.stop()
-        self.recorder = None
-        self.recorder_config = None
-        self._my_acs_client.disconnect()
-        self._my_acs_client = None
+        try:
+            if not self._canceled:
+                try:
+                    self.close()
+                except:
+                    self._log.warn("could not stop")
+        except:
+            pass
+                
 
     def print_config(self):
         
@@ -258,9 +280,9 @@ if __name__ == "__main__":
         print 'Command to stop the recorder'
         
     finally:
-        recorder.stop()
+        recorder.close()
         recorder = None
-           
+          
     print 'Exit application'
     
 

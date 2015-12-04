@@ -23,6 +23,7 @@ from ctamonitoring.property_recorder import constants
 from ctamonitoring.property_recorder.frontend_exceptions import (
     UnsupporterPropertyTypeError
     )
+from ctamonitoring.property_recorder.backend.exceptions import InterruptedException
 from Acspy.Common.Log import getLogger
 
 __version__ = "$Id$"
@@ -184,7 +185,11 @@ class BaseArchCB:
 
         self.completion = completion
 
-        self.backend_buffer.flush()  # Done with the monitor so flush the data
+
+        try:     
+            self.backend_buffer.flush()  # Done with the monitor so flush the data
+        except InterruptedException:
+            self._logger.logDebug("last monitoring value might be lost")
 
         # TODO: with the = Non then there is no need to call flush --> Check
         self.backend_buffer = None

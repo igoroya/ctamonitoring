@@ -944,7 +944,7 @@ class RecorderConfigDecoder(object):
     #-------------------------------------------------------------------------
 
     @staticmethod
-    def get_cdb_data(componentCDB, recorder_config=None, logger):
+    def get_cdb_data(componentCDB, recorder_config=None, logger=None):
         """
         Initializes the values to those from the CDB
 

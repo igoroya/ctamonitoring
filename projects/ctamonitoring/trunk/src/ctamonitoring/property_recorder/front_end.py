@@ -68,30 +68,49 @@ class FrontEnd(object):
         self._setup_backend()
         
         self._start_watchdog()
-    #TODO: Add a destructor
+        
+        self._canceled = False 
+
+    def cancel(self):
+        """
+        Stops the check thread, releases the components and closes the registry
+        """
+        if not self._canceled:
+        
+            self.logger.logDebug("canceling...")
+            
+            #self._component_whatchdog.reset()
+            
+            self._component_whatchdog.stop()
+            
+            self._component_whatchdog = None
+    
+            #This step flushes all the data to the backend
+            self._release_all_comps()
+                    
+            #self._registry.close()
+                    
+            self._registry = None;
+            
+            self._canceled = True
+            
+            #TODO: check that cancellations are verified, i.e., check that is not cancelled before start etc.
     
     def __del__(self):
-        """
-        Stops the check thread, releases the components and closes teh registry
-        """
-        self.logger.logDebug("destroying...")
-        
-        #self._component_whatchdog.reset()
-        
-        self._component_whatchdog.stop()
-        
-        self._component_whatchdog = None
-
-        #This step flushes all the data to the backend
-        self._release_all_comps()
-                
-        self._registry = None;
+        try:
+            if not self._canceled:
+                try:
+                    self.cancel()
+                except:
+                    self.logger.logWarning("could not cancel")
+        except:
+            pass    
     
     def _setup_backend(self):
         if self.recorder_config.backend_config is None:
             self._registry = backend_registries[self.recorder_config.backend_type]()   
         else :
-            self._registry = backend_registries[self.recorder_config.backend_type](**self.config.storage_config)   
+            self._registry = backend_registries[self.recorder_config.backend_type](**self.recorder_config.backend_config)   
         
     def _start_watchdog(self):
         # if it is an standalone recorder this will be created by the parent
@@ -577,9 +596,7 @@ class FrontEnd(object):
             # Here I remove references, I could pause them as well but provides
             # extra complications in bookkeeping
             self._release_all_comps()
-
         finally:
-            self.logger.logDebug("release lock")
             self.__lock.release()
 
     #-------------------------------------------------------------------------
