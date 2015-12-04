@@ -201,8 +201,7 @@ class FrontEnd(object):
         self.logger.logDebug('found ' + str(n_components) + ' components')
 
         # Check the availableComponent, only those which are already activated
-        for count_comp in (0, n_components -1 ):
-            
+        for count_comp in range(0, n_components):
             try:
                 component_id = activatedComponents[count_comp]
             except IndexError:
@@ -210,7 +209,7 @@ class FrontEnd(object):
                 return
             
             self.logger.logDebug(
-                "inspecting component: " + str(component_id))
+                "inspecting component n. " + str(count_comp) + ": " + str(component_id))
 
             #If working in INCLUDE mode and it is in the include list, add it
             if self.recorder_config.is_include_mode:
