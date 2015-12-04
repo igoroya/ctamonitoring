@@ -35,7 +35,6 @@ import time
 import ast
 import datetime
 from ctamonitoring.property_recorder.config import RecorderConfig
-from ctamonitoring.property_recorder.frontend_exceptions import BadCdbRecorderConfig
 #------------------------------------------------------------------------------
 # Add something like enums to Python (Better ideas are welcome)
 
@@ -62,18 +61,11 @@ class recorder(actl__POA.PropertyRecorder,
                ComponentLifecycle):
 
     """
-    Implementation of the PropertyRecorder interface
+    Implementation of the PropertyRecorder interface as an ACS component.
+    For the standalone, application version see standalone_recorder.py
 
-    It provides two flavors, one working as an stand-alone tool for small
-    setups, and the other better suited for large setups when several
-    PropertyRecorder instances will be created by the Property Recorder
-    Distributer (see: distributer.py).
-
-    The stand-alone version can be initiated via creating an instance
-    of standalone.py,
-    while for the scalable version via the constructor of this class
-
-    Monitors are created at a fixed rate and or with a value change monitor.
+    
+    Monitors are created at a fixed rate and/or with a value change monitor.
     The fixed rate monitor is created according to the value of
     the CDB attribute "default_timer_trig". It is assumed that the
     default_timer_trig is in units of seconds. If default_timer_trig is
@@ -81,7 +73,8 @@ class recorder(actl__POA.PropertyRecorder,
     itself by default at 60 seconds. The monitor callbacks are defined
     at callbacks.py
 
-    If the CDB contains the attributes archive_delta and/or
+    If the CDB or each component to be recorded contains the 
+    attributes archive_delta and/or
     archive_delta_percent, then the monitor will be triggered also by value
     changes according to these attributes (+ at the set fixed rate). If these
     attributes are not there, then the monitor will be only triggered with
@@ -109,8 +102,8 @@ class recorder(actl__POA.PropertyRecorder,
     @author: igoroya
     @organization: HU Berlin
     @copyright: cta-observatory.org
-    @version: $Id$
-    @change: $LastChangedDate$, $LastChangedBy$
+    @version: $Id: recorder.py 1168 2015-04-13 18:42:27Z igoroya $
+    @change: $LastChangedDate: 2015-04-13 20:42:27 +0200 (Mon, 13 Apr 2015) $, $LastChangedBy: igoroya $
     """
     #-------------------------------------------------------------------------
 
@@ -121,48 +114,53 @@ class recorder(actl__POA.PropertyRecorder,
         CharacteristicComponent.__init__(self)
         ContainerServices.__init__(self)
 
-        # dictionary to store the components with acquired references
-        self.__componentsMap = {}
+        #Get verbosity from the CDB
+        
+        self._logger.setLevel(verbosity)
+       
+        #Get config from CDB
+       
+        self.recorder_config = recorder_config
 
-        self.__lostComponents = set()  # set of lost components
+      
 
-        self._isRecording = threading.Event()
 
-        # is the recorder full?
-        self._isFull = False
+        #create recorder object 
 
-        self.__totalStoredProps = 0
+        self.recorder = FrontEnd(recorder_config, self)
+        
+        self._logger.info('Property recorder up')
 
-        # get threading lock to make some methods synchronized
-        self.__lock = threading.RLock()
-
-        self._checkThread = None
 
     #-------------------------------------------------------------------------
     def initialize(self):
-        """
+        '''
         Implementation of lifecycle method.
-        Tries to gets access to the CDB, and initializes the configuration
+        Gets access to the CDB, and initializes the configuration
         to be used by this property recorder. If no access exists to the CDB
         then default values are used.
-        """
-        self.getLogger().logDebug("called...")
+        '''
 
-        # I create the config object here because at __init__ there is no ACS
-        # logger
-        # stores the configuration (maximum number of componets etc.)
-        self.__config = recorder_config(self.getLogger())
+
+        #Get the CDB config for the recorder
+        self._logger = self.getLogger()
+     
+
 
         # Get access to the CDB
         cdb = CDBAccess.cdb()
 
+       
+
+        self.__config = RecorderConfig()
+
         # try:
         try:
-            componentCDBXML = cdb.get_DAO('alma/%s' % (self.getName()))
-            componentCDB = XmlObjectifier.XmlObject(componentCDBXML)
-        except cdbErrType.CDBRecordDoesNotExistEx:
-            self.getLogger().logInfo(
-                "The DAO could not get for the property recorder, using the default values")
+            componentCDB = XmlObjectifier.XmlObject(
+                                cdb.get_DAO('alma/%s' % (self.getName())))
+        except cdbErrType.CDBRecorDoesNotExistEx:
+            self._logger.logInfo(
+                "The DAO could not be obtained for the property recorder, using the default values")
         except ExpatError as e:
             self.getLogger().logInfo(
                 "The CDB expression could not be decoded: "
@@ -173,12 +171,18 @@ class recorder(actl__POA.PropertyRecorder,
                 "Problem reading CDB information, using the default values")
         else:
             try:
-                self.__config.getCDBData(componentCDB)
+                self.__config = RecorderConfigDecoder.get_cdb_data(componentCDB, RecorderConfig, self._logger)
             except Exception:
                 self.getLogger().logInfo(
                     "Problem when decoding the CDB information, using defaults")
 
-        self.__config.printConfigs()
+
+        #
+        #TODO: all below
+        #
+        #
+
+
 
         # Create the registry object
         self._storage = self.__config.storage
@@ -186,6 +190,9 @@ class recorder(actl__POA.PropertyRecorder,
             self._registry = self._storage()   
         else :
             self._registry = self._storage(**self.__config.storage_config)   
+        
+        
+        
         
         # if it is an standalone recorder this will be created by the parent
         # class
@@ -926,6 +933,7 @@ class recorder(actl__POA.PropertyRecorder,
 
 
 
+
 class RecorderConfigDecoder(object):
 
     """
@@ -936,7 +944,7 @@ class RecorderConfigDecoder(object):
     #-------------------------------------------------------------------------
 
     @staticmethod
-    def get_cdb_data(componentCDB):
+    def get_cdb_data(componentCDB, recorder_config=None, logger):
         """
         Initializes the values to those from the CDB
 
@@ -949,7 +957,10 @@ class RecorderConfigDecoder(object):
             BadCdbRecorderConfig if the attribute to be read is in 
             an incorrect format
         """
-        recorder_config = RecorderConfig()
+
+        if recorder_config is None:
+            recorder_config = RecorderConfig()
+            
         
         try:
             recorder_config.default_timer_trigger = int(
@@ -958,9 +969,7 @@ class RecorderConfigDecoder(object):
                                 "default_monitor_rate").decode
                     ))
         except Exception:
-            raise BadCdbRecorderConfig('default_monitor_rate')
-            #TODO: It is probably not necessary to raise an exception here but just to log that
-            #there was a problem and then use default value
+            logger.exception("default_monitor_rate could not be decoded")
        
         try:
             recorder_config.max_comps = int(
@@ -969,7 +978,7 @@ class RecorderConfigDecoder(object):
                                 "max_comps").decode
                     ))
         except Exception:
-            raise BadCdbRecorderConfig('max_comps')
+            logger.exception("max_comps could not be decoded")
                 
         try:
             recorder_config.max_props = int(
@@ -978,20 +987,20 @@ class RecorderConfigDecoder(object):
                                 "max_props").decode
                     ))
         except Exception:
-            raise BadCdbRecorderConfig('max_props')
+            logger.exception("max_props could not be decoded")
         
         
         try:
             recorder_config.backend_type = componentCDB.firstChild.getAttribute(
                                 "backend").decode
         except Exception:
-            raise BadCdbRecorderConfig('backend')
+            logger.exception("max_comps could not be decoded")
         
         try:
             recorder_config.backend_config = componentCDB.firstChild.getAttribute(
                                 "backend_config").decode
         except Exception:
-            raise BadCdbRecorderConfig('backend_config')
+            logger.exception("backend_config could not be decoded")
         
      
         try:
@@ -1001,7 +1010,7 @@ class RecorderConfigDecoder(object):
                                 "checking_period").decode(
                     )))
         except Exception:
-            raise BadCdbRecorderConfig('checking_period')
+            logger.exception("checking_period could not be decoded")
       
         
         try:
@@ -1011,20 +1020,19 @@ class RecorderConfigDecoder(object):
                                 "is_include").decode(
                     )))
         except Exception:
-            raise BadCdbRecorderConfig('is_include')
+            logger.exception("is_include could not be decoded")
         
         try:
             recorder_config.components = componentCDB.firstChild.getAttribute(
                                 "component_list").decode
         except Exception:
-            raise BadCdbRecorderConfig('component_list')
+            logger.exception("component_list could not be decoded")
         
         return recorder_config
 
 
 #--------
 # Below all to be removed
-
 
 class recorder_config:
 
@@ -1177,6 +1185,9 @@ class recorder_config:
         self.__logger.logInfo(
             "====================================================")
 #------------------------------------------------------------------------------
+
+
+
 
 
 class property_characteristics():

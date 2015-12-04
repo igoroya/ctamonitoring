@@ -23,6 +23,7 @@ from ctamonitoring.property_recorder.backend import property_type
 from enum import Enum
 from ctamonitoring.property_recorder.constants import DecodeMethod
 
+
 PropertyType = property_type.PropertyType
 
 class PropertyTypeUtilTest(unittest.TestCase):
@@ -61,7 +62,7 @@ class PropertyTypeUtilTest(unittest.TestCase):
         self._my_acs_client = PySimpleClient()
         logger = self._my_acs_client.getLogger()
         logger.setLevel(logging.WARNING) # disable annoying output from the tests
-        
+                
         
     def tearDown(self):
         self._my_acs_client.disconnect()

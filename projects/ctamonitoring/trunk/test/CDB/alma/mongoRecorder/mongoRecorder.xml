@@ -8,7 +8,10 @@
        default_monitor_rate="600000000"
        max_comps="50"
        max_props="500"
-       checking_period="30">
+       checking_period="30"
+       is_include="false"
+       component_list="[]"
+       >
         <dummy
        />
  </PropertyRecorder>

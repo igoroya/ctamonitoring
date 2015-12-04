@@ -8,7 +8,8 @@ from ctamonitoring.property_recorder.util import ComponentUtil
 from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder.callbacks import CBFactory
 from ACS import CBDescIn  # @UnresolvedImport
-from ctamonitoring.property_recorder.frontend_exceptions import UnsupporterPropertyTypeError
+from ctamonitoring.property_recorder.frontend_exceptions import UnsupporterPropertyTypeError,\
+    ComponenNotFoundError, WrongComponenStateError
 
 PropertyType = property_type.PropertyType
 
@@ -123,11 +124,23 @@ class FrontEnd(object):
                 
                 try: 
                     ComponentUtil.is_component_state_ok(comp_reference, compName)
+                except ComponenNotFoundError:
+                    self.logger.logDebug(
+                                         "the component " 
+                                         + compName 
+                                         + " does not exists anymore")
+                    self._componentsMap.pop(compName)
+                except WrongComponenStateError:
+                    self.logger.logDebug(
+                                         "the component " 
+                                         + compName 
+                                         + " is in a wrong state")
+                    self._componentsMap.pop(compName)    
                 except Exception:
                     #TODO: next item should not raise an error but a low level log. See how to do that
                     self.logger.exception(
                                         "the component " + compName + 
-                                        " is in a wrong state, ")
+                                        " is in a unexpected state, ")
                     
                     self._componentsMap.pop(compName)
 

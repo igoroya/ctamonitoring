@@ -9,42 +9,34 @@
 
 module actl {
 	
+
 	/**
-	* unbounded sequence of ids of lost/removed components
-	*/
-	typedef sequence <string > LostComponent;
-	
-	 /**
-     * Enum for backend types
-     */
-	enum BackendType {
-	 			DUMMY,
-    			LOG,
-    			MYSQL,
-    			MONGODB
-	 };
-	
-	
-	/**
-	* Base interface, as most of the functions are the same in the PropertyRecorder and in the 
-	* PropertyRecorderDistributer
+	* Interface for a property recorder component
+	* 
+	* The configuration of the property recorder do not change at
+	* runtime and loaded from the CDB. See component_recorder.py 
+	* for details
 	*/
 	interface PropertyRecorderBase : ACS::CharacteristicComponent{
 		/**
-		*   Sends signal to start recording data
+		* Sends signal to start recording data from properties
 		*/
 	  	void startRecording();
 	  	/**
-	  	*   Sends signal to stop recording and issues order to release references and destroy monitors
+	  	* Sends signal to stop recording and issues order to release references 
+	  	* and destroy existing monitors
 	  	*/
 	  	void stopRecording();
 	  	/**
-	  	* Returns True if recording, otherwise false 
+	  	* @return TRUE if recording, otherwise FALSE 
 	  	*/
 	  	boolean isRecording(); 
 	  	/**
-	  	* The default rate will be only applied for those properties without a value in 'default_timer_trig' char. 
-        * Only can be called if it is not recording, in order to avoid having a mixture of properties with default monitor rates. 
+	  	* The default rate will be only applied for those properties without
+	  	* a value in 'default_timer_trig' 
+		*. 
+        * Only can be called if it is not recording, in order to avoid having 
+        * a mixture of properties with default monitor rates. 
         * @param rate   in seconds
 	  	*/
 		void setMonitorDefaultRate(in long rate) raises (ACSErrTypeCommon::CouldntPerformActionEx);
@@ -53,94 +45,22 @@ module actl {
         * @return rate in seconds
 		*/
 		long getMonitorDefaultRate();
-	};
-	
-	/**
-	* This either works as an standalone recorder for "small" setups (TODO: check how small)
-	* or instances (dynamic components) are created on demand from the PropertyRecorderDistributer
-	*/
-	interface PropertyRecorder : PropertyRecorderBase{
-	  	/**
-	  	* To check if a property writer is full. Full Property Recorders do not insert new components
-        * @return True if it is full False otherwise
+		/**
+	  	* To check if a property recorder is full. 
+	  	* Full Property Recorders do not insert new components
+        * @return TRUE if it is full, FALSE otherwise
 	  	*/
 	  	boolean isFull();
 	  	/**
-	  	* Allows to insert one component from outside for recording the properties.
-        * In principle designed for using with the PropertyRecorderDistributer, not needed for the standalone mode.
+	  	* Allows to insert one component from outside for recording the properties,
+        * regardless if it is in the include or exclude list 
+        *
         * @param componentId  string with the component ID
-        * @return True or False if it managed to insert or not the component
+        * @throw ACSErrTypeCommon::CouldntPerformActionEx if the component could not be inserted
 	  	*/
 		void addComponent(in string componentId) raises (ACSErrTypeCommon::CouldntPerformActionEx);
-		/**
-		* Sets the maximum number of components for the particular PropertyRecorder.
-        * @param maxComp  Maximum number of components accepted
-		*/
-		void setMaxComponents(in long maxComp); //Not sure if needed
-		/**
-		* Sets the maximum number of properties for the particular PropertyRecorder.
-        * @param maxProp  Maximum number of components accepted
-		*/
-		void setMaxProperties(in long maxProp); //Not sure if needed
-		/**
-		* to get the components lost since the last call of this method
-        * Mainly designed to work together with the PropertyRecorderDistributer
-        * @return list of strings with the IDs of lost components
-		*/
-		LostComponent getLostComponent(); 
-		/**
-		* Sets the backend type, in principle needed for the 
-		* Distributer applications
-		* @param Type the backend
-		* @param config Python encoding type string with the backend configuration
-		*/
-		void setBackend(in BackendType type, in string config) raises (ACSErrTypeCommon::CouldntPerformActionEx);
 		
 	};
-	
-	/**
-	* Distributer of 1 or more PropertyRecorder instances, designed for large small setups TODO: check how small
-	* 
-	*/
-	interface PropertyDistributer : PropertyRecorderBase{
-		/**
-		* Sets the maximum number of components for each new PropertyRecorder.
-        * @param maxComp  Maximum number of components accepted in each PropertyRecorder
-		*/
-		void setMaxComponentsPerRecorder(in long maxComp); //Not sure if needed or better a const in the cdb
-		/**
-		* Sets the maximum number of properties for each new PropertyRecorder.
-        * @param maxProp  Maximum number of components accepted in each PropertyRecorder
-		*/
-		void setMaxPropertiesPerRecorder(in long maxProp); //Not sure if needed or better a const in the cdb 
-		
-	};
-
-// NC not used any more, instead a pull mechanism with getLostComponent will be used  
-// 	/**
-//     * This defines the block of data that will be sent over the notification
-//    * channel, when a component dissaperas within one of the PropertyRecorders,
-//     * so the PropertyRecorderDistributer is informed
-//     */
-//    struct PropertyRecorderEvent
-//    {
-//	/**
-//	 *  ID of the removed component
-//	 */
-//        string  componentId;
-//	/**
-//	 *  Id of the recorder where it was stored
-//	 */
-//		string recorderId;
-//    };
-//
-//    /**
-//     * This defines the channel name for use with all event suppliers
-//     * and consumers for the FridgeControl component.
-//     */
-//    const string CHANNELNAME_PROPERTYRECORDER = "propertyRecorder";
-     
-
 };
 
 #endif

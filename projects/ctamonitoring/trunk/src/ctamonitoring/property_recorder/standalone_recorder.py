@@ -140,12 +140,11 @@ class RecorderParser(object):
         Gets the verbosity level of the logs provided by standalone recorder
         console
         
-        
         @return: verbosity level 
         @rtype: int 
         '''
         if 'more_verbose'  in self._args :
-            return 0
+            return logging.NOTSET
         elif 'verbose'  in self._args :
             return logging.DEBUG
         else:
@@ -185,6 +184,8 @@ class StandaloneRecorder(object):
         '''
         @var recorder_config: the configuration of the recorder
         @type recorder_config: RecorderConfig
+        @var verbosity: the verbosity of the logger
+        @type verbosity: int 
         '''
         
         

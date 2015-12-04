@@ -89,3 +89,30 @@ class UnsupporterPropertyTypeError(Exception):
         if self.msg:
             retVal += ": " + self.msg
         return retVal
+    
+class BadCdbRecorderConfig(Exception):
+    '''
+    When the config of the recorder stored in the CDB is not correct
+    
+    TODO: Not used! Should be removed?
+    '''
+    def __init__(self, cdb_entry_id, msg = ""):
+        '''
+        ctor.
+    
+        @param cdb_entry_id: The entry in the Cdb which was wrong
+        @type cdb_entry_id: string
+        @param msg: Additional information. Optional("").
+        @param msg: string
+        '''
+        self.cdb_entry_id = cdb_entry_id
+        self.msg = msg
+    
+    def __str__(self):
+        retVal = ("The entry fot: " + 
+                  str(self.cdb_entry_id) + 
+                " is not correct in the component CDB "
+        )            
+        if self.msg:
+            retVal += ": " + self.msg
+        return retVal
