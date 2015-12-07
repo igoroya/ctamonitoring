@@ -558,10 +558,16 @@ class FrontEnd(object):
                         '._get_' + chars + '()')
         try:
             my_pro = eval(my_prop_str)
+        except AttributeError: 
+            self.logger.logDebug(
+                "it was not possible to get the property, jumping to next one")
+            self.logger.exception("")
+            return None
         except Exception:
             self.logger.logDebug(
                 "it was not possible to get the property, jumping to next one")
             self.logger.exception("")
+            return None
         return my_pro
     #-------------------------------------------------------------------------
             
