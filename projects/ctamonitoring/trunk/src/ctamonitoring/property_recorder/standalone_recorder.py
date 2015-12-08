@@ -298,12 +298,12 @@ if __name__ == "__main__":
     #Work until user stops
     try:
         while True:
+            time.sleep(10) 
             if not recorder._is_acs_client_ok():
                 try: 
                     recorder.make_new_acs_client()
                 except Exception:
                      # Here we get an exception if ACS is down, so we give him some time  
-                    time.sleep(10) 
                     print 'ACS is down, will wait 10 sec. for its recovery'
                 # TODO: It sill usually rise a ACSErrTypeCommonImpl.CORBAProblemExImpl    
     except KeyboardInterrupt:
