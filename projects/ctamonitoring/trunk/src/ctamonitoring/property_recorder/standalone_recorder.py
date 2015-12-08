@@ -2,6 +2,7 @@ import logging
 import argparse
 import ast
 import pprint
+import time
 from Acspy.Clients.SimpleClient import PySimpleClient
 from ctamonitoring.property_recorder.config import RecorderConfig
 from ctamonitoring.property_recorder.front_end import FrontEnd
@@ -191,6 +192,7 @@ class StandaloneRecorder(object):
         
         
         # Create the ACS simple client. This allows the communication with ACS
+        
         self._my_acs_client = PySimpleClient()
         
         self._logger = self._my_acs_client.getLogger()
@@ -206,6 +208,24 @@ class StandaloneRecorder(object):
         
         self._logger.info('Property recorder up')
 
+
+    def make_new_acs_client(self):
+        
+        print 'updating client'
+        
+        self._my_acs_client = PySimpleClient()
+        
+        self._logger = self._my_acs_client.getLogger()
+        
+        self._logger.setLevel(verbosity)
+        
+        #TODO: The 3 lines above are duplicated and could be merged
+        
+        print 'dending updated client to front_end'
+
+        
+        self.recorder.update_acs_client(self._my_acs_client)
+            
     def start(self):
         if self._canceled:
             raise RuntimeError("The recorded is cancelled")
@@ -230,6 +250,9 @@ class StandaloneRecorder(object):
             self._my_acs_client = None
             self._canceled = True
 
+    def _is_acs_client_ok(self):
+        return self.recorder._is_acs_client_ok
+    
     def __del__(self):
         try:
             if not self._canceled:
@@ -275,7 +298,14 @@ if __name__ == "__main__":
     #Work until user stops
     try:
         while True:
-            pass
+            if not recorder._is_acs_client_ok():
+                try: 
+                    recorder.make_new_acs_client()
+                except Exception:
+                     # Here we get an exception if ACS is down, so we give him some time  
+                    time.sleep(10) 
+                    print 'ACS is down, will wait 10 sec. for its recovery'
+                # TODO: It sill usually rise a ACSErrTypeCommonImpl.CORBAProblemExImpl    
     except KeyboardInterrupt:
         print 'Command to stop the recorder'
         

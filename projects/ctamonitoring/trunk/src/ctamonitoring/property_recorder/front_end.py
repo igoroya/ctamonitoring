@@ -9,7 +9,7 @@ from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder.callbacks import CBFactory
 from ACS import CBDescIn  # @UnresolvedImport
 from ctamonitoring.property_recorder.frontend_exceptions import UnsupporterPropertyTypeError,\
-    ComponenNotFoundError, WrongComponenStateError
+    ComponenNotFoundError, WrongComponenStateError, AcsIsDownError
 
 PropertyType = property_type.PropertyType
 
@@ -68,6 +68,8 @@ class FrontEnd(object):
         self._setup_backend()
         
         self._start_watchdog()
+
+        self._is_acs_client_ok = True
         
         self._canceled = False 
 
@@ -96,6 +98,7 @@ class FrontEnd(object):
             
             #TODO: check that cancellations are verified, i.e., check that is not cancelled before start etc.
     
+    
     def __del__(self):
         try:
             if not self._canceled:
@@ -105,6 +108,16 @@ class FrontEnd(object):
                     self.logger.logWarning("could not cancel")
         except:
             pass    
+    
+    
+    def update_acs_client(self, acs_client):
+        if self.is_recording():
+            self.start_recording()
+            self.acs_client = acs_client
+            self.start_recording()
+        else:
+            self.acs_client = acs_client
+        self._is_acs_client_ok = True
     
     def _setup_backend(self):
         if self.recorder_config.backend_config is None:
@@ -181,6 +194,9 @@ class FrontEnd(object):
         """
         Scans the system, locate containers,
         their components and their properties.
+        
+        Raises:
+            AcsIsDownError -- If the ACS client is reporting the problem 
         """
 
         self.logger.logDebug("called...")
@@ -189,8 +205,14 @@ class FrontEnd(object):
             self.logger.logWarning("property recorder is full, will not accept more components/properties!")
             return
 
-        # try:
-        activatedComponents = self.acs_client.findComponents("*", "*", True)
+        try:
+            activatedComponents = self.acs_client.findComponents("*", "*", True)
+        except Exception: 
+            self.logger.logWarning("Cannot find activated components. Is ACS down?")
+            self.logger.exception("")
+            raise AcsIsDownError
+            #This is a severe issue and all processes must be stopped
+            
 
         n_components = len(activatedComponents)
 
@@ -497,7 +519,7 @@ class FrontEnd(object):
         '''
     
         try:
-            time_trigger_omg = long(10000000 * my_buffer.get("default_timer_trig"))
+            time_trigger_omg = long(10000000 * property_attributes.get("default_timer_trig"))
            
         except Exception:
             self.logger.logDebug("no time trigger found in the CDB, "
@@ -730,7 +752,11 @@ class ComponentWhatchdog(threading.Thread):
             # First check if we lost any component
             self._recorder_instance._remove_wrong_components()
             # now look for new component
-            self._recorder_instance._scan_for_components()
+            try:
+                self._recorder_instance._scan_for_components()
+            except AcsIsDownError:
+                self._recorder_instance._is_acs_client_ok = False
+                #ACS is down, the client must be notified
 
         def reset(self):
             self.sleep_event.clear()

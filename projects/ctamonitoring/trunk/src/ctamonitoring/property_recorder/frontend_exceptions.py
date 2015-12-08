@@ -116,3 +116,25 @@ class BadCdbRecorderConfig(Exception):
         if self.msg:
             retVal += ": " + self.msg
         return retVal
+    
+    
+class AcsIsDownError(Exception):
+    '''
+    When ACS is down, the acs client must be restarted. 
+ 
+    '''
+    def __init__(self, msg = ""):
+        '''
+        ctor.
+    
+        @param msg: Additional information. Optional("").
+        @param msg: string
+        '''
+        self.msg = msg
+    
+    def __str__(self):
+        retVal = ("ACS is in a wrong state. "
+        )            
+        if self.msg:
+            retVal += " " + self.msg
+        return retVal    
