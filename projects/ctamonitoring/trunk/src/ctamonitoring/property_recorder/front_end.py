@@ -367,8 +367,12 @@ class FrontEnd(object):
 
                 # Check if the characteristic is a property
 
-                acs_property = self._get_acs_property(component,
+                try:
+                    acs_property = self._get_acs_property(component,
                                                     chars[count])
+                except AttributeError:
+                    continue
+                
                 if acs_property is None:
                     continue
 
@@ -542,32 +546,36 @@ class FrontEnd(object):
         if it is a property or not
 
         Keyword arguments:
-            component -- object
+            component -- acs characteristic component object
             chars     -- characteristic to be evaluated
         Returns:
-            Property  -- The object or None if could not get it
+            Property  -- The property object
         Raises:
-            Exception -- If the property could not be evaluated
-                         in the component
+            AttributeError -- If the property could not be evaluated
+                              in the component
         """
-        my_prop_str = 'component' + '._get_' + chars + '()'
-        my_pro = None
+        #my_prop_str = 'component' + '._get_' + chars + '()'
+        my_prop_str = '_get_' + chars
+       
+        #my_pro = None
 
         self.logger.debug("evaluating: " + 
                         str(component) + 
                         '._get_' + chars + '()')
         try:
-            my_pro = eval(my_prop_str)
-        except AttributeError: 
+            #my_pro = eval(my_prop_str)
+            my_pro_attr = getattr(component, my_prop_str)
+            my_pro = my_pro_attr()
+        except AttributeError as e: 
             self.logger.logDebug(
                 "it was not possible to get the property, jumping to next one")
             self.logger.exception("")
-            return None
-        except Exception:
-            self.logger.logDebug(
-                "it was not possible to get the property, jumping to next one")
-            self.logger.exception("")
-            return None
+            raise AttributeError(e)
+        #except Exception:
+        #    self.logger.logDebug(
+        #        "it was not possible to get the property, jumping to next one")
+        #    self.logger.exception("")
+        #    return None
         return my_pro
     #-------------------------------------------------------------------------
             
