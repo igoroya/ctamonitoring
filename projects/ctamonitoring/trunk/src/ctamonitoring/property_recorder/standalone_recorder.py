@@ -303,7 +303,7 @@ if __name__ == "__main__":
                 try: 
                     recorder.make_new_acs_client()
                 except Exception:
-                     # Here we get an exception if ACS is down, so we give him some time  
+                    # Here we get an exception if ACS is down, so we give him some time  
                     print 'ACS is down, will wait 10 sec. for its recovery'
                 # TODO: It sill usually rise a ACSErrTypeCommonImpl.CORBAProblemExImpl    
     except KeyboardInterrupt:
