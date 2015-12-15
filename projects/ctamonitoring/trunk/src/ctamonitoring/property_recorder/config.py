@@ -246,19 +246,16 @@ class PropertyAttributeHandler(object):
         '''
 
         try:
-            # first check if it exists (otherwise the container would warning 
-            # if attribute is not existing when using 
-            # get_characteristic_by_name)
             if len(acs_property.find_characteristic(
-                            attribute.name)) is 0:
-                return None  
+                    attribute.name)) is 0:
+                return None
             raw_value = acs_property.get_characteristic_by_name(
                 attribute.name).value()
         except NoSuchCharacteristic:
             return None
 
         return PropertyAttributeHandler._process_attribute(
-                attribute, raw_value)
+            attribute, raw_value)
 
     @staticmethod
     def _getCdbEntryXmlObjectifier(attribute, acs_property_cdb):
@@ -270,7 +267,7 @@ class PropertyAttributeHandler(object):
         raw_value = acs_property_cdb.firstChild.getAttribute(
             attribute.name).decode()
         return PropertyAttributeHandler._process_attribute(
-                attribute, raw_value)
+            attribute, raw_value)
 
     @staticmethod
     def _process_attribute(attribute, raw_value):
@@ -279,9 +276,8 @@ class PropertyAttributeHandler(object):
             value = AttributeDecoder.decode_attribute(
                 raw_value, attribute.decoding)
         except ValueError:
-            # In the case of boolean properties, the archive_delta and some other attributes 
             # If is boolean and the decoding fails we try to catch it here
-            try: 
+            try:
                 value = AttributeDecoder.decode_boolean(raw_value)
             except ValueError:
                 value = None
@@ -290,13 +286,7 @@ class PropertyAttributeHandler(object):
         except Exception:
             logger.exception("")
             value = None
-        
-        # logger.logInfo(
-        #        " attribute: " + attribute.name +
-        #        " raw value: " + str(raw_value) +
-        #        " decoded value: " + str(value)
-        #        )
-        
+
         # Check those cases when it has to be positive
         if (attribute.isPositive) and (value is not None) and (value < 0.0):
             value = None

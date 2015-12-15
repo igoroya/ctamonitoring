@@ -3,7 +3,7 @@ import collections
 from __builtin__ import str
 from ctamonitoring.property_recorder.config import backend_registries
 from ctamonitoring.property_recorder.config import PropertyAttributeHandler
-from ctamonitoring.property_recorder.util import  PropertyTypeUtil
+from ctamonitoring.property_recorder.util import PropertyTypeUtil
 from ctamonitoring.property_recorder.util import ComponentUtil
 from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder.callbacks import CBFactory
@@ -14,15 +14,14 @@ from ctamonitoring.property_recorder.frontend_exceptions import UnsupporterPrope
 PropertyType = property_type.PropertyType
 
 ComponentInfo = collections.namedtuple(
-                    'componentInfo',
-                    ['compReference',
-                    'monitors'],
-                    verbose=False)
+    'componentInfo',
+    ['compReference',
+     'monitors'],
+    verbose=False)
 '''
 compReference -- the CORBA reference to the component
 monitors      -- list with the monitor objects associated to the component
 '''
-
 
 
 class FrontEnd(object):
@@ -30,7 +29,7 @@ class FrontEnd(object):
     The core class of the property recorder front-end
     Keeps a track of the existing components
     Takes care of opening buffers in the DB backends
-    
+
     Monitors are created at a fixed rate and/or with a value change monitor.
     The fixed rate monitor is created according to the value of
     the CDB attribute "default_timer_trig". It is assumed that the
@@ -39,7 +38,7 @@ class FrontEnd(object):
     itself by default at 60 seconds. The monitor callbacks are defined
     at callbacks.py
 
-    If the CDB or each component to be recorded contains the 
+    If the CDB or each component to be recorded contains the
     attributes archive_delta and/or
     archive_delta_percent, then the monitor will be triggered also by value
     changes according to these attributes (+ at the set fixed rate). If these
@@ -59,26 +58,26 @@ class FrontEnd(object):
     in this implementation. In addition, archive_suppress is set to
     "false". Therefore, properties without these two characteristics will
     be stored at 1Hz rate.
-    
-    
-    Requires to have ACS up and running to run
+
     '''
-    
-    def __init__(self, recorder_config, acs_client, recorder_component_name = None):
+
+    def __init__(self, recorder_config, acs_client,
+                 recorder_component_name=None):
         '''
         recorder_config -- the setup parameters for the recorder
-        acs_client      -- the instance of the ACS client, or component where the 
-                           recorder is hosted, that provides access to the ACS world
+        acs_client      -- the instance of the ACS client, or component where
+                           the recorder is hosted, that provides access to
+                           the ACS world
         '''
-        
+
         self.name = recorder_component_name
-        
-        self.recoder_space = RecorderSpaceObserver(recorder_config.max_comps,  
-                                                    recorder_config.max_props)
+
+        self.recoder_space = RecorderSpaceObserver(recorder_config.max_comps,
+                                                   recorder_config.max_props)
         # dictionary to store the components with acquired references
-        
-        self._componentsMap = ComponentStore(value = None, 
-                                            observer = self.recoder_space)
+
+        self._componentsMap = ComponentStore(value=None,
+                                             observer=self.recoder_space)
 
         self._isRecording = threading.Event()
 
@@ -86,49 +85,47 @@ class FrontEnd(object):
         self.__lock = threading.RLock()
 
         self._component_whatchdog = None
-        
+
         self.recorder_config = recorder_config
-        
+
         self.logger = acs_client.getLogger()
-        
+
         self.acs_client = acs_client
-        
+
         self._registry = None
-        
+
         self._setup_backend()
-        
+
         self._start_watchdog()
 
         self._is_acs_client_ok = True
-        
-        self._canceled = False 
+
+        self._canceled = False
 
     def cancel(self):
         """
         Stops the check thread, releases the components and closes the registry
         """
         if not self._canceled:
-        
+
             self.logger.logDebug("canceling...")
-            
-            #self._component_whatchdog.reset()
-            
+
             self._component_whatchdog.stop()
-            
+
             self._component_whatchdog = None
-    
-            #This step flushes all the data to the backend
+
+            # This step flushes all the data to the backend
             self._release_all_comps()
-                    
-            #self._registry.close()
-                    
-            self._registry = None;
-            
+
+            # self._registry.close()
+
+            self._registry = None
+
             self._canceled = True
-            
-            #TODO: check that cancellations are verified, i.e., check that is not cancelled before start etc.
-    
-    
+
+            # TODO: check that cancellations are verified, i.e., check that
+            # is not cancelled before start etc.
+
     def __del__(self):
         try:
             if not self._canceled:
@@ -137,9 +134,8 @@ class FrontEnd(object):
                 except:
                     self.logger.logWarning("could not cancel")
         except:
-            pass    
-    
-    
+            pass
+
     def update_acs_client(self, acs_client):
         if self.is_recording():
             self.start_recording()
@@ -148,24 +144,26 @@ class FrontEnd(object):
         else:
             self.acs_client = acs_client
         self._is_acs_client_ok = True
-    
+
     def _setup_backend(self):
         if self.recorder_config.backend_config is None:
-            self._registry = backend_registries[self.recorder_config.backend_type]()   
-        else :
-            self._registry = backend_registries[self.recorder_config.backend_type](**self.recorder_config.backend_config)   
-        
+            self._registry = backend_registries[
+                self.recorder_config.backend_type]()
+        else:
+            self._registry = backend_registries[
+                self.recorder_config.backend_type](
+                    **self.recorder_config.backend_config)
+
     def _start_watchdog(self):
         # if it is an standalone recorder this will be created by the parent
         # class
         if self._component_whatchdog is None:
             self._component_whatchdog = self._create_component_whatchdog()
             self._component_whatchdog.start()
-    
-    def _create_component_whatchdog (self):
+
+    def _create_component_whatchdog(self):
         return ComponentWhatchdog(self)
-    
-    
+
     def _remove_wrong_components(self):
         """
         Check if any component was lost or went into wrong state
@@ -178,32 +176,33 @@ class FrontEnd(object):
         try:
             length = len(self._componentsMap)
 
-            for compName, compInfo in self._componentsMap.items() :
+            for compName, compInfo in self._componentsMap.items():
 
                 comp_reference = compInfo.compReference
-                
+
                 self.logger.logDebug("checking component: " + compName)
-                
-                try: 
-                    ComponentUtil.is_component_state_ok(comp_reference, compName)
+
+                try:
+                    ComponentUtil.is_component_state_ok(
+                        comp_reference, compName)
                 except ComponenNotFoundError:
                     self.logger.logDebug(
-                                         "the component " 
-                                         + compName 
-                                         + " does not exists anymore")
+                        "the component "
+                        + compName
+                        + " does not exists anymore")
                     self._componentsMap.pop(compName)
                 except WrongComponenStateError:
                     self.logger.logDebug(
-                                         "the component " 
-                                         + compName 
-                                         + " is in a wrong state")
-                    self._componentsMap.pop(compName)    
+                        "the component "
+                        + compName
+                        + " is in a wrong state")
+                    self._componentsMap.pop(compName)
                 except Exception:
                     #TODO: next item should not raise an error but a low level log. See how to do that
                     self.logger.exception(
-                                        "the component " + compName + 
-                                        " is in a unexpected state, ")
-                    
+                        "the component " + compName +
+                        " is in a unexpected state, ")
+
                     self._componentsMap.pop(compName)
 
             length -= len(self._componentsMap)
@@ -218,38 +217,41 @@ class FrontEnd(object):
 
             self.logger.logDebug("release lock")
         finally:
-            self.__lock.release()   
-            
+            self.__lock.release()
+
     def _scan_for_components(self):
         """
         Scans the system, locate containers,
         their components and their properties.
-        
+
         Raises:
-            AcsIsDownError -- If the ACS client is reporting the problem 
+            AcsIsDownError -- If the ACS client is reporting the problem
         """
 
         self.logger.logDebug("called...")
 
         if (self.recoder_space.isFull):
-            self.logger.logWarning("property recorder is full, will not accept more components/properties!")
+            self.logger.logWarning(
+                "property recorder is full, "
+                "will not accept more components/properties!")
             return
 
         try:
-            activatedComponents = self.acs_client.findComponents("*", "*", True)
-        except Exception: 
-            self.logger.logWarning("Cannot find activated components. Is ACS down?")
+            activatedComponents = self.acs_client.findComponents(
+                "*", "*", True)
+        except Exception:
+            self.logger.logWarning(
+                "Cannot find activated components. Is ACS down?")
             self.logger.exception("")
             raise AcsIsDownError
-            #This is a severe issue and all processes must be stopped
-            
+            # This is a severe issue and all processes must be stopped
 
         n_components = len(activatedComponents)
 
         if n_components is 0:
             self.logger.logDebug("No components active")
             return
-        
+
         self.logger.logDebug('found ' + str(n_components) + ' components')
 
         # Check the availableComponent, only those which are already activated
@@ -257,38 +259,43 @@ class FrontEnd(object):
             try:
                 component_id = activatedComponents[count_comp]
             except IndexError:
-                self.logger.logDebug("Number of components was reduced, returning")
+                self.logger.logDebug(
+                    "Number of components was reduced, returning")
                 return
-            
-            self.logger.logDebug(
-                "inspecting component n. " + str(count_comp) + ": " + str(component_id))
 
-            #If working in INCLUDE mode and it is in the include list, add it
+            self.logger.logDebug(
+                "inspecting component n. "
+                + str(count_comp) + ": " + str(component_id))
+
+            # If working in INCLUDE mode and it is in the include list, add it
             if self.recorder_config.is_include_mode:
                 if component_id in self.recorder_config.components:
                     self.process_component(component_id)
                 else:
-                    self.logger.logDebug('The component ' +
-                        str(component_id) +
-                        ' is not in the include list, skipping')
-            
-            #If working in EXCLUDE mode and it is NOT in the EXCLUDE list, add it
+                    self.logger.logDebug(
+                        'The component '
+                        + str(component_id)
+                        + ' is not in the include list, skipping')
+
+            # If working in EXCLUDE mode and it is NOT in the list, add it
             if not self.recorder_config.is_include_mode:
-                if not component_id in self.recorder_config.components:
+                if component_id not in self.recorder_config.components:
                     self.process_component(component_id)
                 else:
-                    self.logger.logDebug('The component ' +
+                    self.logger.logDebug(
+                        'The component ' +
                         str(component_id) +
                         ' is in the exclude list, skipping')
-            
+
         self.logger.logDebug("done...")
-        
+
     def process_component(self, component_id):
         """
         Verify a component in the recorder
         If it is not contained, insert it.
-        The component will be inserted regardless if it is in the exclude/imclude list, or not
-        
+        The component will be inserted regardless if it is in the
+        exclude/include list, or not
+
         Keyword arguments:
         component_id     -- string with the component ID
 

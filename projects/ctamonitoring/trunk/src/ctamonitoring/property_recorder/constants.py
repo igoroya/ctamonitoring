@@ -68,69 +68,70 @@ DecodeMethod = Enum('NONE', 'AST_LITERAL', 'AST_LITERAL_HYBRID', 'UTF8')
 AttributeInfo = namedtuple('name', 'name, decoding, isPositive, yes_synonyms')
 
 
-PROPERTY_ATTRIBUTES = [AttributeInfo(
-                            'archive_priority', DecodeMethod.AST_LITERAL,
-                            False, None),
-                       AttributeInfo(
-                            'name', DecodeMethod.NONE,
-                            False, None),
-                       AttributeInfo(
-                            'archive_min_int', DecodeMethod.AST_LITERAL,
-                            True, None),
-                       AttributeInfo(
-                            'archive_max_int', DecodeMethod.AST_LITERAL,
-                            True, None),
-                       AttributeInfo(
-                            'archive_mechanism', DecodeMethod.NONE,
-                            False, None),
-                       AttributeInfo(
-                            'archive_delta', DecodeMethod.AST_LITERAL,
-                            True, None),
-                       AttributeInfo(
-                            'archive_delta_percent', DecodeMethod.AST_LITERAL,
-                            True, None),
-                       AttributeInfo(
-                            'default_timer_trig', DecodeMethod.AST_LITERAL,
-                            True, None),
-                       AttributeInfo(
-                            'default_value', DecodeMethod.AST_LITERAL_HYBRID,
-                            False, None),
-                       AttributeInfo(
-                            'description', DecodeMethod.NONE, False, None),
-                       AttributeInfo('format', DecodeMethod.NONE, False, None),
-                       AttributeInfo(
-                            'graph_max', DecodeMethod.AST_LITERAL,
-                            False, None),
-                       AttributeInfo(
-                            'graph_min', DecodeMethod.AST_LITERAL,
-                            False, None),
-                       AttributeInfo(
-                            'min_delta_trig', DecodeMethod.AST_LITERAL,
-                            True, None),
-                       AttributeInfo(
-                            'min_step', DecodeMethod.AST_LITERAL, True, None),
-                       AttributeInfo(
-                            'min_timer_trig', DecodeMethod.AST_LITERAL,
-                            True, None),
-                       AttributeInfo(
-                            'resolution', DecodeMethod.AST_LITERAL,
-                            True, None),
-                       AttributeInfo('units', DecodeMethod.UTF8, False, None),
-                       AttributeInfo(
-                            'condition', DecodeMethod.NONE, False, None),
-                       AttributeInfo(
-                            'bitDescription', DecodeMethod.NONE, False, None),
-                       AttributeInfo(
-                            'statesDescription', DecodeMethod.NONE,
-                            False, None),
-                       AttributeInfo(
-                            'whenCleared', DecodeMethod.NONE, False, None),
-                       AttributeInfo(
-                            'whenSet', DecodeMethod.NONE, False, None),
-                       AttributeInfo(
-                            'archive_suppress', DecodeMethod.NONE, False,
-                            ['yes', 'true']),
-                       ]
+PROPERTY_ATTRIBUTES = [
+    AttributeInfo(
+        'archive_priority', DecodeMethod.AST_LITERAL,
+        False, None),
+    AttributeInfo(
+        'name', DecodeMethod.NONE,
+        False, None),
+    AttributeInfo(
+        'archive_min_int', DecodeMethod.AST_LITERAL,
+        True, None),
+    AttributeInfo(
+        'archive_max_int', DecodeMethod.AST_LITERAL,
+        True, None),
+    AttributeInfo(
+        'archive_mechanism', DecodeMethod.NONE,
+        False, None),
+    AttributeInfo(
+        'archive_delta', DecodeMethod.AST_LITERAL,
+        True, None),
+    AttributeInfo(
+        'archive_delta_percent', DecodeMethod.AST_LITERAL,
+        True, None),
+    AttributeInfo(
+        'default_timer_trig', DecodeMethod.AST_LITERAL,
+        True, None),
+    AttributeInfo(
+        'default_value', DecodeMethod.AST_LITERAL_HYBRID,
+        False, None),
+    AttributeInfo(
+        'description', DecodeMethod.NONE, False, None),
+    AttributeInfo('format', DecodeMethod.NONE, False, None),
+    AttributeInfo(
+        'graph_max', DecodeMethod.AST_LITERAL,
+        False, None),
+    AttributeInfo(
+        'graph_min', DecodeMethod.AST_LITERAL,
+        False, None),
+    AttributeInfo(
+        'min_delta_trig', DecodeMethod.AST_LITERAL,
+        True, None),
+    AttributeInfo(
+        'min_step', DecodeMethod.AST_LITERAL, True, None),
+    AttributeInfo(
+        'min_timer_trig', DecodeMethod.AST_LITERAL,
+        True, None),
+    AttributeInfo(
+        'resolution', DecodeMethod.AST_LITERAL,
+        True, None),
+    AttributeInfo('units', DecodeMethod.UTF8, False, None),
+    AttributeInfo(
+        'condition', DecodeMethod.NONE, False, None),
+    AttributeInfo(
+        'bitDescription', DecodeMethod.NONE, False, None),
+    AttributeInfo(
+        'statesDescription', DecodeMethod.NONE,
+        False, None),
+    AttributeInfo(
+        'whenCleared', DecodeMethod.NONE, False, None),
+    AttributeInfo(
+        'whenSet', DecodeMethod.NONE, False, None),
+    AttributeInfo(
+        'archive_suppress', DecodeMethod.NONE, False,
+        ['yes', 'true']),
+]
 '''
 These are the attributes that a property can potentially have associated with
 it, together with the way we are decoding it for the property recorder

@@ -23,7 +23,9 @@ from ctamonitoring.property_recorder import constants
 from ctamonitoring.property_recorder.frontend_exceptions import (
     UnsupporterPropertyTypeError
     )
-from ctamonitoring.property_recorder.backend.exceptions import InterruptedException
+from ctamonitoring.property_recorder.backend.exceptions import (
+    InterruptedException
+    )
 from Acspy.Common.Log import getLogger
 
 __version__ = "$Id$"
@@ -62,7 +64,7 @@ class BaseArchCB:
         @type backend_buffer:
             ctamonitoring.property_recorder.backend.dummy.registry.Buffer
 
-        @raise ValueError: if no name is given to the property 
+        @raise ValueError: if no name is given to the property
             or no buffer is specified
         '''
 
@@ -81,7 +83,6 @@ class BaseArchCB:
 
         if logger is None:
             logger = getLogger('ctamonitoring.property_recorder.callbacks')
-
 
         self._logger = logger
 
@@ -107,13 +108,13 @@ class BaseArchCB:
         '''
 
         self._logger.logDebug(
-                'Monitor of ' +
-                self.property_name +
-                ', WORKING, value read is: ' +
-                str(value) + '  time: ' +
-                str(completion.timeStamp) +
-                ' type: ' + str(completion.type) + ' code: ' +
-                str(completion.code))
+            'Monitor of ' +
+            self.property_name +
+            ', WORKING, value read is: ' +
+            str(value) + '  time: ' +
+            str(completion.timeStamp) +
+            ' type: ' + str(completion.type) + ' code: ' +
+            str(completion.code))
 
         # Do not write the value if an exception happened, but notify
         # TODO: In previous version, completion was always 0 (ACS 12),
@@ -185,9 +186,8 @@ class BaseArchCB:
 
         self.completion = completion
 
-
-        try:     
-            self.backend_buffer.flush()  # Done with the monitor so flush the data
+        try:
+            self.backend_buffer.flush()
         except InterruptedException:
             self._logger.logDebug("last monitoring value might be lost")
 
@@ -422,11 +422,11 @@ class ArchCBpatternStringRep(
 
             if completion.type != 0:
                 self._logger.logWarning(
-                        'Property: ' + self.name + ' completion type: ' +
-                        ' type: ' + str(completion.type) +
-                        ' code: ' +
-                        str(completion.code) +
-                        ', data is not stored')
+                    'Property: ' + self.name + ' completion type: ' +
+                    ' type: ' + str(completion.type) +
+                    ' code: ' +
+                    str(completion.code) +
+                    ', data is not stored')
 
             else:
                 self.backend_buffer.add(
