@@ -4,10 +4,13 @@
 	   xmlns:cdb="urn:schemas-cosylab-com:CDB:1.0"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        backend="LOG"
-       default_monitor_rate="600000000"
+       backend_config="None"
+       default_timer_trigger="10.0"
        max_comps="50"
        max_props="500"
-       checking_period="30">
+       checking_period="30"
+       is_include="false"
+       component_list="['Component1', 'Component2']">
         <dummy
        />
  </PropertyRecorder>

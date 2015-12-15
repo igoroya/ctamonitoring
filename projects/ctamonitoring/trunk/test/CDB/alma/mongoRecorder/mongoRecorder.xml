@@ -5,13 +5,12 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        backend="MONGODB"
        backend_config="{'database' : 'ctamonitoring'}"
-       default_monitor_rate="600000000"
+	   default_timer_trigger="10.0"
        max_comps="50"
        max_props="500"
        checking_period="30"
        is_include="false"
-       component_list="[]"
-       >
+       component_list="['Component1', 'Component2']">
         <dummy
        />
  </PropertyRecorder>

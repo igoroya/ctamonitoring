@@ -4,18 +4,18 @@
        xmlns:baci="urn:schemas-cosylab-com:BACI:1.0" 
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
-	 <_ Name="logRecorder"
-         Code="ctamonitoring.property_recorder.standalone"
+	 <_ Name="propertyRecorder1"
+         Code="ctamonitoring.property_recorder.ComponentRecorder"
          Type="IDL:cta/actl/PropertyRecorder:1.0"
          Container="pyContainer"  ImplLang="py" />
 
-	 <_ Name="distributerRecorder1"
-         Code="PropertyRecorderImpl.distributer"
-         Type="IDL:cta/actl/PropertyRecorderDistributer:1.0"
+	 <_ Name="logRecorder"
+         Code="ctamonitoring.property_recorder.ComponentRecorder"
+         Type="IDL:cta/actl/PropertyRecorder:1.0"
          Container="pyContainer"  ImplLang="py" />
-         
+
      <_ Name="mongoRecorder"
-         Code="ctamonitoring.property_recorder.standalone"
+         Code="ctamonitoring.property_recorder.ComponentRecorder"
          Type="IDL:cta/actl/PropertyRecorder:1.0"
          Container="pyContainer"  ImplLang="py" />
 

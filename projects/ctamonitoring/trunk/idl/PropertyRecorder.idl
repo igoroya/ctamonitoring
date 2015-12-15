@@ -17,7 +17,7 @@ module actl {
 	* runtime and loaded from the CDB. See component_recorder.py 
 	* for details
 	*/
-	interface PropertyRecorderBase : ACS::CharacteristicComponent{
+	interface PropertyRecorder : ACS::CharacteristicComponent{
 		/**
 		* Sends signal to start recording data from properties
 		*/
@@ -31,20 +31,6 @@ module actl {
 	  	* @return TRUE if recording, otherwise FALSE 
 	  	*/
 	  	boolean isRecording(); 
-	  	/**
-	  	* The default rate will be only applied for those properties without
-	  	* a value in 'default_timer_trig' 
-		*. 
-        * Only can be called if it is not recording, in order to avoid having 
-        * a mixture of properties with default monitor rates. 
-        * @param rate   in seconds
-	  	*/
-		void setMonitorDefaultRate(in long rate) raises (ACSErrTypeCommon::CouldntPerformActionEx);
-		/**
-		* to get the value of the default monitor rate for the new properties to be created
-        * @return rate in seconds
-		*/
-		long getMonitorDefaultRate();
 		/**
 	  	* To check if a property recorder is full. 
 	  	* Full Property Recorders do not insert new components

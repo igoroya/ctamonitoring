@@ -27,7 +27,7 @@
  	 </xs:sequence>
   	<xs:attribute name="backend" type="BackendType" use="required"/>	
   	<xs:attribute name="backend_config" type="xs:string" use="optional"/>	
-  	<xs:attribute name="default_monitor_rate" type="xs:int" use="optional"/>	
+  	<xs:attribute name="default_timer_trigger" type="xs:double" use="optional"/>	
   	<xs:attribute name="max_comps" type="xs:int" use="optional"/>
   	<xs:attribute name="max_props" type="xs:int" use="optional"/>
   	<xs:attribute name="checking_period" type="xs:int" use="optional"/>

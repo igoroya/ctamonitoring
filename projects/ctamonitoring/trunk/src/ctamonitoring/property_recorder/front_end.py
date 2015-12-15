@@ -31,6 +31,36 @@ class FrontEnd(object):
     Keeps a track of the existing components
     Takes care of opening buffers in the DB backends
     
+    Monitors are created at a fixed rate and/or with a value change monitor.
+    The fixed rate monitor is created according to the value of
+    the CDB attribute "default_timer_trig". It is assumed that the
+    default_timer_trig is in units of seconds. If default_timer_trig is
+    missing then monitors are created at a configurable default rate,
+    itself by default at 60 seconds. The monitor callbacks are defined
+    at callbacks.py
+
+    If the CDB or each component to be recorded contains the 
+    attributes archive_delta and/or
+    archive_delta_percent, then the monitor will be triggered also by value
+    changes according to these attributes (+ at the set fixed rate). If these
+    attributes are not there, then the monitor will be only triggered with
+    the rate fixed rate.
+
+    The obtained references to components are non-sticky and therefore
+    is not required to release them.
+
+    Enum data string representation is passed to the backend as long as
+    the corresponding description exists in the CDB, otherwise
+    the integer representation is will be stored.
+
+    Important Note: At least for C++, If the property does not have any
+    value in the default_timer_trig attribute, then the default is
+    set by the component itself to 10000000, equivalent to 1 second rate
+    in this implementation. In addition, archive_suppress is set to
+    "false". Therefore, properties without these two characteristics will
+    be stored at 1Hz rate.
+    
+    
     Requires to have ACS up and running to run
     '''
     
@@ -257,6 +287,7 @@ class FrontEnd(object):
         """
         Verify a component in the recorder
         If it is not contained, insert it.
+        The component will be inserted regardless if it is in the exclude/imclude list, or not
         
         Keyword arguments:
         component_id     -- string with the component ID
@@ -331,8 +362,6 @@ class FrontEnd(object):
 
         returns True if can be stored, False if not
         """
-
-        #TODO: Add here the Exclude/Include list
 
         if component_id in self._componentsMap:
             self.logger.logDebug(
