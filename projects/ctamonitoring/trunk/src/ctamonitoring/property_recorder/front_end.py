@@ -1,3 +1,14 @@
+__version__ = "$Id$"
+'''
+Contains exceptions that could be raised by the front-end module
+
+@author: igoroya
+@organization: DESY Zeuthen
+@copyright: cta-observatory.org
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
+'''
 import threading
 import collections
 from __builtin__ import str
@@ -198,7 +209,7 @@ class FrontEnd(object):
                         + " is in a wrong state")
                     self._componentsMap.pop(compName)
                 except Exception:
-                    #TODO: next item should not raise an error but a low level log. See how to do that
+                    # TODO: next item should not raise an error but a log.
                     self.logger.exception(
                         "the component " + compName +
                         " is in a unexpected state, ")
@@ -306,60 +317,60 @@ class FrontEnd(object):
 
         self.logger.logDebug("take lock")
         self.__lock.acquire()
-        
+
         result = False
 
         try:
-        
-            if self._componentsMap.has_key(component_id):
+
+            if component_id in self._componentsMap:
                 self.logger.logDebug(
-                    "the component " + component_id + 
+                    "the component " + component_id +
                     " is already registered")
                 return
-            
+
             if self._can_be_added(component_id):
                 try:
-                    # get no sticky so we do not prevent them of being deactivated
-                    component = self.acs_client.getComponentNonSticky(component_id)
+                    # get no sticky so we do not
+                    # prevent them of being deactivated
+                    component = self.acs_client.getComponentNonSticky(
+                        component_id)
                 except Exception:
-                    self.logger.exception("could not get a reference to the component "+ 
-                                        str(component_id))
-                                        
+                    self.logger.exception(
+                        "could not get a reference to the component "
+                        + str(component_id))
                     return
-        
                 # skip other property recorders
                 if(ComponentUtil.is_a_property_recorder_component(component)):
                     self.logger.logDebug("skipping other property recorders")
                     return
-                
-                comp_info = ComponentInfo(component, self._get_component_characteristics(component))
+
+                comp_info = ComponentInfo(
+                    component,
+                    self._get_component_characteristics(component)
+                    )
 
                 self._componentsMap[component_id] = comp_info
-                
-                self.logger.logDebug("Component " +component_id 
-                                  + " was added")
-                              
+
+                self.logger.logDebug(
+                    "Component " + component_id + " was added")
+
                 result = True
-            
+
             else:
-                self.logger.logDebug("Component " +component_id 
-                                  + " cannot be added")
-                return 
-         
+                self.logger.logDebug(
+                    "Component " + component_id + " cannot be added")
+                return
+
         except Exception:
-                    self.logger.exception(str(component_id) +
-                        " could not be added ")
-                
+                    self.logger.exception(
+                        str(component_id)
+                        + " could not be added ")
+
         finally:
             self.logger.logDebug("release lock")
             self.__lock.release()
             return result
 
-        
-    #-------------------------------------------------------------------------
-    
-
-    
     def _can_be_added(self, component_id):
         """
         Checks if the component can be stored
@@ -374,34 +385,33 @@ class FrontEnd(object):
             self.logger.logDebug(
                 "the component " + component_id + " is already registered")
             return False
-    
+
         # Skipping the self component to avoid getting a self-reference
-         
         if(component_id == self.name):
             self.logger.logDebug("skipping myself")
             return False
 
-        return True        
-    
-    
+        return True
+
     def _get_component_characteristics(self, component_reference):
         """
         Find and evaluate the properties
         and characteristics of a Component
         It reads the CDB entry of the component and
         decoded and interprets it.
-        
-        It then forwards this to the backend and 
+
+        It then forwards this to the backend and
         returns the list of monitors
 
         Keyword arguments:
         component_reference  -- corba reference of the conponent
 
-        Returns monitorList with all the monitors created, or None if not possible
+        Returns monitorList with all the monitors created,
+        or None if not possible
         """
-        
-        #TODO Can raise exception, document it
-        
+
+        # TODO Can raise exception, document it
+
         component = component_reference
         monitor_list = []
 
@@ -409,9 +419,8 @@ class FrontEnd(object):
             self.logger.logDebug("Component is not characteristic")
             return monitor_list
 
-        
         chars = component.find_characteristic("*")
-        
+
         for count in range(0, len(chars)):
             myCharList = component_reference.get_characteristic_by_name(
                 str(chars[count])).value().split(',')
@@ -420,78 +429,74 @@ class FrontEnd(object):
             # longer than 5, then is probably a property
             if (len(myCharList) > 5):
                 self.logger.logDebug(
-                    'probably is a property, trying to get the information ' 
+                    'probably is a property, trying to get the information '
                     'for the archive')
 
                 # Check if the characteristic is a property
 
                 try:
-                    acs_property = self._get_acs_property(component,
-                                                    chars[count])
+                    acs_property = self._get_acs_property(
+                        component, chars[count])
                 except AttributeError:
                     continue
-                
+
                 if acs_property is None:
                     continue
 
                 if not PropertyTypeUtil.is_property_ok(acs_property):
                     continue
 
-
                 property_attributes = (
-                            PropertyAttributeHandler
-                            .get_prop_attribs_cdb(
-                                     acs_property, 
-                                     ComponentUtil
-                                     .is_python_char_component(component))
+                    PropertyAttributeHandler.get_prop_attribs_cdb(
+                        acs_property,
+                        ComponentUtil.is_python_char_component(component))
                     )
-                
-                try: 
-                    my_buffer = self._create_buffer(acs_property, 
-                                    property_attributes, 
-                                    component_reference)
+
+                try:
+                    my_buffer = self._create_buffer(
+                        acs_property,
+                        property_attributes,
+                        component_reference
+                        )
                 except Exception:
                     self.logger.exception(
                         "The buffer could not be created")
                     continue
-                
-  
-                try: 
+
+                try:
                     property_monitor = self._create_monitor(
-                                            acs_property, 
-                                            property_attributes, 
-                                            my_buffer)
-                
+                        acs_property,
+                        property_attributes,
+                        my_buffer)
+
                 except UnsupporterPropertyTypeError:
                     self.logger.exception("")
                     property_monitor = None
-              
+
                 if property_monitor is not None:
                     monitor_list.append(property_monitor)
 
-        return monitor_list   
-      
-    
-       
-            
-    def _create_buffer(self, acs_property, property_attributes, component_reference):
+        return monitor_list
+
+    def _create_buffer(
+            self, acs_property,
+            property_attributes,
+            component_reference):
         '''
         Creates a buffer in the backend and returns it
-   
+
         @param acs_property: the ACS property
         @type acs_property: ACS._objref_<prop_type>
-        
-        
-        
+
         Raises:
         TypeError -- If the property type is not supported
-        Exception  -- If any other problem happened when creating the buffers  
+        Exception  -- If any other problem happened when creating the buffers
         '''
         my_prop_type = None
-     
+
         component_name = component_reference._get_name()
-        component_type = component_reference._NP_RepositoryId               
-        
+        component_type = component_reference._NP_RepositoryId
+
         try:
             my_prop_type = PropertyTypeUtil.get_property_type(
                 acs_property._NP_RepositoryId)
@@ -499,71 +504,77 @@ class FrontEnd(object):
             self.logger.logWarning(
                 "Property type not supported, skipping")
             raise TypeError(e)
-        
-        
-        #TODO: Think in what to do with the enum states
+
+        # TODO: Think in what to do with the enum states
         enumStates = None
-          
+
         if (my_prop_type is None) or (my_prop_type is PropertyType.OBJECT):
-                    my_prop_type = PropertyType.OBJECT 
+                    my_prop_type = PropertyType.OBJECT
                     try:
-                        enumStates = PropertyTypeUtil.get_enum_prop_dict(acs_property)
-                        self.logger.logDebug("Enum States found: "+str(enumStates))                        
+                        enumStates = PropertyTypeUtil.get_enum_prop_dict(
+                            acs_property)
+                        self.logger.logDebug(
+                            "Enum States found: "+str(enumStates))
                     except AttributeError:
                         self.logger.logDebug(
-                            "Enum states cannot be read, use the int representation")
+                            "Enum states cannot be read,"
+                            " use the int representation")
                     except ValueError:
                         self.logger.logDebug(
-                            "Enum states do not make sense, use the int representation")
+                            "Enum states do not make sense,"
+                            "use the int representation")
                     except Exception:
                         self.logger.exception("")
 
-        try:         
-            
-            my_buffer = self._registry.register(component_name = component_name,
-                               component_type = component_type,
-                               property_name = acs_property._get_name(),
-                               property_type = my_prop_type,
-                               property_type_desc = enumStates, 
-                               **property_attributes) 
-        
-        except UserWarning: 
+        try:
+
+            my_buffer = self._registry.register(
+                component_name=component_name,
+                component_type=component_type,
+                property_name=acs_property._get_name(),
+                property_type=my_prop_type,
+                property_type_desc=enumStates,
+                **property_attributes)
+
+        except UserWarning:
             self.logger.logWarning(
                 "Warning of buffer being used received, forcing in")
-            my_buffer = self._registry.register(component_name = component_name,
-                                component_type = component_type,
-                                property_name = acs_property._get_name(),
-                                property_type = my_prop_type,
-                                property_type_desc = enumStates, 
-                                disable = False, 
-                                force = True,
-                                **property_attributes) 
-            
+            my_buffer = self._registry.register(
+                component_name=component_name,
+                component_type=component_type,
+                property_name=acs_property._get_name(),
+                property_type=my_prop_type,
+                property_type_desc=enumStates,
+                disable=False,
+                force=True,
+                **property_attributes)
+
         self.logger.logDebug(
-                "Create property with attributes: "+
-                str(property_attributes)
-                )
-        
+            "Create property with attributes: " +
+            str(property_attributes)
+            )
+
         return my_buffer
-        
-        
+
     def _create_monitor(self, acs_property, property_attributes, my_buffer):
         '''
-        
-        Raises -- UnsupporterPropertyTypeError If the property type is not supported
-                  for monitors
-        '''
-    
-        try:
-            time_trigger_omg = long(10000000 * property_attributes.get("default_timer_trig"))
-           
-        except Exception:
-            self.logger.logDebug("no time trigger found in the CDB, "
-                                  "using the default value")
-            time_trigger_omg = long(10000000 * self.recorder_config.default_timer_trigger)
 
-       
-        #This can rise a UnsupporterPropertyTypeError
+        Raises -- UnsupporterPropertyTypeError If the property type
+                  is not supported for monitors
+        '''
+
+        try:
+            time_trigger_omg = long(10000000 * property_attributes.get(
+                "default_timer_trig"))
+
+        except Exception:
+            self.logger.logDebug(
+                "no time trigger found in the CDB, "
+                "using the default value")
+            time_trigger_omg = long(
+                10000000 * self.recorder_config.default_timer_trigger)
+
+        # This can rise a UnsupporterPropertyTypeError
         cbMon = CBFactory.get_callback(
             acs_property,
             acs_property._get_name(),
@@ -579,24 +590,24 @@ class FrontEnd(object):
         # CBDescIn(0, 0, 0)
         property_monitor = acs_property.create_monitor(cbMonServant, desc)
 
-        self.logger.logDebug("Time trigger to use for the monitor: " + 
-                                  str(time_trigger_omg))
+        self.logger.logDebug(
+            "Time trigger to use for the monitor: "
+            + str(time_trigger_omg))
 
-        # Note, here time should be OMG time!
+        # Note, here time should be OMG time
         property_monitor.set_timer_trigger(time_trigger_omg)
-        
-        
+
         archive_delta = property_attributes.get("archive_delta")
         if PropertyTypeUtil.is_archive_delta_enabled(archive_delta):
             property_monitor.set_value_trigger(archive_delta, True)
-        
+
         archive_delta_perc = property_attributes.get("archive_delta_percent")
         if PropertyTypeUtil.is_archive_delta_enabled(archive_delta_perc):
-            property_monitor.set_value_percent_trigger(archive_delta_perc, True)
+            property_monitor.set_value_percent_trigger(
+                archive_delta_perc, True)
 
-      
         return property_monitor
-    
+
     def _get_acs_property(self, component, chars):
         """
         Allows to evaluate a characteristic by using the capabilities of the
@@ -612,31 +623,23 @@ class FrontEnd(object):
             AttributeError -- If the property could not be evaluated
                               in the component
         """
-        #my_prop_str = 'component' + '._get_' + chars + '()'
         my_prop_str = '_get_' + chars
-       
-        #my_pro = None
 
-        self.logger.debug("evaluating: " + 
-                        str(component) + 
-                        '._get_' + chars + '()')
+        self.logger.debug(
+            "evaluating: "
+            + str(component)
+            + '._get_' + chars + '()')
         try:
-            #my_pro = eval(my_prop_str)
             my_pro_attr = getattr(component, my_prop_str)
             my_pro = my_pro_attr()
-        except AttributeError as e: 
+        except AttributeError as e:
             self.logger.logDebug(
                 "it was not possible to get the property, jumping to next one")
             self.logger.exception("")
             raise AttributeError(e)
-        #except Exception:
-        #    self.logger.logDebug(
-        #        "it was not possible to get the property, jumping to next one")
-        #    self.logger.exception("")
-        #    return None
+
         return my_pro
-    #-------------------------------------------------------------------------
-            
+
     def start_recording(self):
         """
         Sends signal to start recording data
@@ -651,7 +654,6 @@ class FrontEnd(object):
         # self.__scanForProps()#so it take immediate action when the method is
         # issued
         self.logger.logInfo("monitoring started")
-    #-------------------------------------------------------------------------
 
     def stop_recording(self):
         """
@@ -670,8 +672,6 @@ class FrontEnd(object):
         finally:
             self.__lock.release()
 
-    #-------------------------------------------------------------------------
-
     def is_recording(self):
         """
         Returns:
@@ -680,7 +680,7 @@ class FrontEnd(object):
         self.logger.logDebug("called...")
 
         return self._isRecording.isSet()
-    
+
     def _release_component(self, component_id):
         '''
         Removes a particular reference
@@ -688,11 +688,9 @@ class FrontEnd(object):
         Keyword arguments:
         component_id     -- string with the component ID
         '''
-        
+
         self.logger.logDebug("called...")
 
-        # loop over the componentMap
-        # for compName, compInfo in self.__componentsMap().iteritems():
         try:
             comp_info = self._componentsMap.pop(component_id)
         except KeyError:
@@ -712,8 +710,6 @@ class FrontEnd(object):
 
         self._remove_monitors(comp_info)
 
-    #-------------------------------------------------------------------------
-
     def _remove_monitors(self, comp_info):
         '''
         Destroy all the monitors belonging to a component
@@ -723,19 +719,17 @@ class FrontEnd(object):
                 try:
                     monitor.destroy()
                 except Exception:
-                    self.logger.exception("exception when deactivating a monitor for: "
+                    # TODO: use better the logger for the exception
+                    self.logger.exception(
+                        "exception when deactivating a monitor for: "
                         + str(comp_info.compReference._get_name()))
-                    
 
-        # release the reference to the component
-        # self.releaseComponent(componentId)
-    #-------------------------------------------------------------------------
     def _release_all_comps(self):
         """
         Private method to release all references and to destroy all monitors
         """
 
-        self.logger.logDebug("called...") 
+        self.logger.logDebug("called...")
 
         # loop over the componentMap
         # for compName, compInfo in self.__componentsMap().iteritems():
@@ -747,8 +741,7 @@ class FrontEnd(object):
         # now empty the dictionary / map
         self._componentsMap.clear()
 
-            
-            
+
 class ComponentWhatchdog(threading.Thread):
 
         """
@@ -792,53 +785,52 @@ class ComponentWhatchdog(threading.Thread):
                 self._recorder_instance._scan_for_components()
             except AcsIsDownError:
                 self._recorder_instance._is_acs_client_ok = False
-                #ACS is down, the client must be notified
+                # ACS is down, the client must be notified
 
         def reset(self):
             self.sleep_event.clear()
 
         def stop(self):
             self._recorder_instance.logger.logDebug(
-                        "stopping")
+                "stopping")
             self._Thread__stop
             self.sleep_event.clear()
             # I needed to add this stop because, even if a daemon, the Python
-            # component logger would show errors (showing up up periodically) 
+            # component logger would show errors (showing up up periodically)
             # because this thread did not finished. With this it worked well.
-#----------------------------------------------------------------------
+
 
 class ComponentStore(dict):
     '''
     Adds one observer to the map for the component
     reporting the total number of components and properties
     for every insertion or deletion.
-    
+
     In all the other respects, behaves as a dict
-    
-    Note: I did not found any need to have more that one observer 
+
+    Note: I did not found any need to have more that one observer
     at the moment, so only one observer can be added at the time
-    
+
     Based on a solution found at:
     http://code.activestate.com/recipes/306864-list-and-dictionary-observer/
-    
+
     '''
-   
-   
-    def __init__ (self, value = None, observer = None):
+
+    def __init__(self, value=None, observer=None):
         if value is None:
             value = {}
         dict.__init__(self, value)
         if observer is not None:
             self.set_observer(observer)
             self.observer.dict_init(self)
-    
-    def set_observer (self, observer):
+
+    def set_observer(self, observer):
         """
         All changes to this dictionary will trigger calls to observer methods
         """
-        self.observer = observer 
-    
-    def __setitem__ (self, key, value):
+        self.observer = observer
+
+    def __setitem__(self, key, value):
         """
         Intercept the l[key]=value operations.
         Also covers slice assignment.
@@ -851,37 +843,37 @@ class ComponentStore(dict):
         else:
             dict.__setitem__(self, key, value)
             self.observer.dict_set(key, value, oldvalue)
-    
-    def __delitem__ (self, key):
+
+    def __delitem__(self, key):
         oldvalue = dict.__getitem__(self, key)
         dict.__delitem__(self, key)
         self.observer.dict_del(key, oldvalue)
-    
-    def clear (self):
+
+    def clear(self):
         oldvalue = self.copy()
         dict.clear(self)
         self.observer.dict_clear(self, oldvalue)
-    
-    def update (self, update_dict):
-        replaced_key_values =[]
-        new_key_values =[]
+
+    def update(self, update_dict):
+        replaced_key_values = []
+        new_key_values = []
         for key, item in update_dict.items():
             if key in self:
                 replaced_key_values.append((key, item, self[key]))
             else:
-                new_key_values.append((key, item)) 
+                new_key_values.append((key, item))
         dict.update(self, update_dict)
         self.observer.dict_update(new_key_values, replaced_key_values)
-    
-    def setdefault (self, key, value=None):
+
+    def setdefault(self, key, value=None):
         if key not in self:
             dict.setdefault(self, key, value)
             self.observer.dict_setdefault(self, key, value)
             return value
         else:
             return self[key]
-    
-    def pop (self, k, x=None):
+
+    def pop(self, k, x=None):
         if k in self:
             value = self[k]
             dict.pop(self, k, x)
@@ -889,23 +881,21 @@ class ComponentStore(dict):
             return value
         else:
             return x
-    
-    def popitem (self):
+
+    def popitem(self):
         key, value = dict.popitem(self)
         self.observer.dict_popitem(key, value)
-        return key, value 
-
-
+        return key, value
 
 
 class RecorderSpaceObserver(object):
     '''
     Is an observer for the ComponentContainer to check if the
-    recorder gets full 
-    
+    recorder gets full
+
     isFull -- If the recorder is full
     '''
-   
+
     def __init__(self, max_components, max_properties):
         '''
         @param param: component_store - map with component information
@@ -919,47 +909,46 @@ class RecorderSpaceObserver(object):
         self._max_properties = max_properties
         self._actual_components = 0
         self._actual_properties = 0
-        
+
         self.isFull = False
-    
+
     def dict_init(self, components):
         '''
         Called when a new dictionary is created with content on it
-        
+
         components is a dict
         with compName, compInfo
         '''
         self._evaluate_component_entries(components)
-        
+
     def dict_create(self, key, value):
         '''
         Called when one entry is added
-        
+
         value is a compInfo
-        
+
         key is the name of the components new entry created
         '''
         self._update_component_entry(key, value)
-    
+
     def dict_set(self, key, value, oldvalue):
         '''
         Called when an entry is replaced
-        
-        key is the name of the updated entry 
-        
-        value is the current value 
-        
+
+        key is the name of the updated entry
+
+        value is the current value
+
         oldvalue is the previous value it had
         '''
         self._update_component_entry(key, value, oldvalue)
 
-
-    def dict_del(self, key, oldvalue): 
+    def dict_del(self, key, oldvalue):
         '''
         Called when an item is deleted
-        
-        key is the name of the deleted entry 
-        
+
+        key is the name of the deleted entry
+
         old value is the  value that it had
         '''
         self._remove_component_entry(key, oldvalue)
@@ -967,44 +956,41 @@ class RecorderSpaceObserver(object):
     def dict_clear(self, components, oldvalue):
         '''
         Called when the dict is emptied
-        
+
         components is a dict with all the stored values
         with compName, compInfo, should be empty
-                
+
         old value is the just deleted component dictionary that it had
-        
-        @Note: I keep here the components, oldvalue because I have an Idea that this could 
-        Be used for something else: when stopping the recorder. Will come back here
+
+        @Note: I keep here the components, oldvalue because I have an
+        idea that this could be used for something else: when stopping
+        the recorder. Will come back here
         '''
-        
         self._actual_components = 0
         self._actual_properties = 0
-        
+
         self.isFull = False
-    
-    
+
     def dict_update(self, new_key_values, replaced_key_value):
         '''
-       
-        new_keys are the new (keys, values) that have been added 
-        
+        new_keys are the new (keys, values) that have been added
+
         replaced_key_values are those (key, value, oldvalue) that were replaced
         '''
-       
+
         for (key, value) in new_key_values:
             self._update_component_entry(key, value)
-       
+
         for (key, value, oldvalue) in replaced_key_value:
             self._update_component_entry(key, value, oldvalue)
-        
 
     def dict_setdefault(self, components, key, value):
         '''
         components is a dict with all the stored values
         with compName, compInfo, should be empty
-                
+
         key is the component that will get a default
-        
+
         value is the associated value
         '''
         raise NotImplementedError
@@ -1013,85 +999,85 @@ class RecorderSpaceObserver(object):
         '''
         components is a dict with all the stored values
         with compName, compInfo, should be empty
-                
+
         key is the component name popped out
-        
+
         value is the associated value of that component
         '''
         self._remove_component_entry(key, value)
-        
-        
+
     def dict_popitem(self, key, value):
         '''
         components is a dict with all the stored values
         with compName, compInfo, should be empty
-                
+
         k is the component name popped out
-        
+
         value is the associated value of that component
         '''
         self._remove_component_entry(key, value)
 
     def check_if_full(self):
-        if (self._max_properties < self._actual_properties) or (self._max_components < self._actual_components):
+        if ((self._max_properties < self._actual_properties)
+                or (self._max_components < self._actual_components)):
             self.isFull = True
         else:
             self.isFull = False
 
     def _evaluate_component_entries(self, components):
         '''
-        @param components: Contains the reference to the objects and the monitors
+        @param components: Contains the reference to the objects and monitors
         @type components: dict{comp_name, ComponentInfo}
         '''
-        
-        self._actual_components = len(components) 
-        
+
+        self._actual_components = len(components)
+
         n_monitors = 0
         for compInfo in components.values():
             n_monitors += len(compInfo.monitors)
-                
+
         self._actual_properties = n_monitors
-        
+
         self.check_if_full()
-    
+
     def _update_component_entry(self, key, value, oldvalue=None):
         '''
         @param key: Contains the name to the updated component
         @type key: str
-         
+
         @param value: Contains the reference to the new object and its monitors
         @type value: ComponentInfo
-        
-        @param oldvalue: Contains the reference to the old object and its monitors
+
+        @param oldvalue: Contains the reference to the old object and monitors
         @type oldvalue: ComponentInfo
         '''
         prev_monitors = 0
-        
+
         if oldvalue is None:
             self._actual_components += 1
         else:
             prev_monitors += len(oldvalue.monitors)
-        
-        
-        self._actual_properties = self._actual_properties + len(value.monitors) - prev_monitors
-        
+
+        self._actual_properties = (
+            self._actual_properties
+            + len(value.monitors)
+            - prev_monitors)
+
         self.check_if_full()
-    
+
     def _remove_component_entry(self, key, oldvalue):
         '''
         @param key: Contains the name to the removed component
         @type key: str
-       
-        @param oldvalue: Contains the reference to the old object and its monitors
+
+        @param oldvalue: Contains the reference to the old object and monitors
         @type oldvalue: ComponentInfo
         '''
-        
-        
+
         prev_monitors = len(oldvalue.monitors)
-        
+
         self._actual_properties -= prev_monitors
-        
+
         self._actual_components -= 1
-        
+
         self.check_if_full()
-        

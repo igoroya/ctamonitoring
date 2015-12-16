@@ -16,5 +16,6 @@ instantiating dynamic recorder components (see recorder.py).
 @organization: HU Berlin
 @copyright: cta-observatory.org
 @version: $Id$
-@change: $LastChangedDate$, $LastChangedBy$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
 """
