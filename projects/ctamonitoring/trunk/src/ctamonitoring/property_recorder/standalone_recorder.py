@@ -1,4 +1,31 @@
 __version__ = "$Id$"
+
+'''
+An application version of the property recorder
+
+This is a version of the property recorder that is run as
+a stand-alone application and not as an ACS component.
+(see ComponentRecorder.py for the component version)
+
+
+@author: igoroya
+@organization: DESY Zeuthen
+@copyright: cta-observatory.org
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
+@requires: ast
+@requires: logging
+@requires: argparse
+@requires: pprint
+@requires: time
+@requires: Acspy.Clients.SimpleClient
+@requires: ctamonitoring.property_recorder.config
+@requires: ctamonitoring.property_recorder.front_end
+@requires: ctamonitoring.property_recorder.util
+@requires: ACSErrTypeCommonImpl
+'''
+
 import logging
 import argparse
 import ast
@@ -9,43 +36,147 @@ from ctamonitoring.property_recorder.config import RecorderConfig
 from ctamonitoring.property_recorder.front_end import FrontEnd
 from ctamonitoring.property_recorder.config import BackendType
 from ctamonitoring.property_recorder.util import EnumUtil
-'''
-Module with all what is related to the configuration holding for the property
-recorder frontend
+from ACSErrTypeCommonImpl import CORBAProblemExImpl
 
-@author: igoroya
-@organization: DESY Zeuthen
-@copyright: cta-observatory.org
-@version: $Id$
-@change: $LastChangedDate$
-@change: $LastChangedBy$
-'''
-'''
-This is a version of the property recorder that is run as
-an application and not as an ACS component.
-In primary meant for test but may be useful later
-also to run as an alternative for the component version
-'''
+
+class StandaloneRecorder(object):
+    '''
+    A property recorder that works as an stand-alone application
+
+    '''
+    def __init__(self, recorder_config, verbosity):
+        '''
+        Ctor
+
+        @param recorder_config: the configuration of the recorder
+        @type recorder_config: RecorderConfig
+        @param verbosity: the verbosity level
+        (logging.WARNING, logging.DEBUG, etc) of the logger
+        @type verbosity: int
+        '''
+        self._verbosity = verbosity
+        self._recorder_config = recorder_config
+
+        self._setup_acs_client()
+        self._setup_front_end()
+        self.__canceled = False
+
+        self._logger.info('Property recorder up')
+
+    def _setup_acs_client(self):
+        self._my_acs_client = PySimpleClient()
+        self._logger = self._my_acs_client.getLogger()
+        self._logger.setLevel(self._verbosity)
+
+    def _setup_front_end(self):
+        self._front_end = FrontEnd(
+            self._recorder_config,
+            self._my_acs_client)
+
+    def make_new_acs_client(self):
+        '''
+        Will make a new ACS client and replace the existing one
+
+        To be used to recover from ACS restarts.
+        @raise CORBAProblemExImpl: if the client cannot be created.
+        '''
+        self._setup_acs_client()
+        self._front_end.update_acs_client(self._my_acs_client)
+
+    def start(self):
+        '''
+        The property recorded will start to record properties
+
+        @raises RuntimeError: if the recorder is cancelled
+        '''
+        if self.__canceled:
+            raise RuntimeError("The recorded is cancelled")
+
+        self._front_end.start_recording()
+        self._logger.info('Recording start')
+
+    def stop(self):
+        '''
+        The property recorded will stop to record properties
+
+        All the monitors are stopped, the components are unregistered
+        @raises RuntimeError: if the recorder is cancelled
+        '''
+        if self.__canceled:
+            raise RuntimeError("The recorded is cancelled")
+        self._front_end.stop_recording()
+        self._logger.info('Recording stop')
+
+    def close(self):
+        '''
+        Closes the property recorder, ready to be destroyed
+
+        All the resources will be freed and the connection with
+        ACS closed. The recorder will be cancelled from now on,
+        Meaning that the recorder is not anymore usable and
+        is ready to be destroyed
+        '''
+        if not self.__canceled:
+            self._logger.info('Switching off property recorder')
+            self.stop()
+            self._front_end.cancel()
+            self._front_end = None
+            self._recorder_config = None
+            self._my_acs_client.disconnect()
+            self._my_acs_client = None
+            self.__canceled = True
+
+    def is_acs_client_ok(self):
+        '''
+        Checks if the ACS client is OK or not.
+
+        When not OK, this typically means that ACS is
+        down. This lets the client know when a new client should be created
+        @return: if the client is OK or not
+        @rtype: bool
+        '''
+        return self._front_end.is_acs_client_ok
+
+    def __del__(self):
+        if not self.__canceled:
+            try:
+                self.close()
+            except Exception:
+                self._logger.exception("could not stop")
+
+    def print_config(self):
+        '''
+        Prints into the logger the existing configuration
+        '''
+        self._logger.debug(
+            'Property Recorder Configuration'
+            '\n--------------------------------------\n' +
+            pprint.pformat(vars(self._recorder_config)) +
+            '\n--------------------------------------')
 
 
 class ConfigBackendAction(argparse.Action):
-
+    '''
+    Action to interpret the user input for the configuration of backend
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         try:
             backend_config_decoded = ast.literal_eval(values)
-            assert(type(backend_config_decoded) is dict)
-        except:
+            assert type(backend_config_decoded) is dict
+        except (SyntaxError, ValueError, TypeError, AssertionError):
             parser.error("'%s' is not a valid backend config" % values)
 
         setattr(namespace, self.dest, backend_config_decoded)
 
 
 class ValidBackendAction(argparse.Action):
-
+    '''
+    Action to interpret the user input for the type of backend
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         try:
-            assert(values in BackendType)
-        except:
+            assert values in BackendType
+        except AssertionError:
             allowed = str(BackendType._keys)
             parser.error(
                 "'%s' is not a valid backend type. Allowed values are: '%s'"
@@ -58,11 +189,13 @@ class ValidBackendAction(argparse.Action):
 
 
 class ComponentAction(argparse.Action):
-
+    '''
+    Action to interpret the user input for the list of components
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         try:
             component_list_decoded = set(ast.literal_eval(values))
-        except:
+        except (SyntaxError, ValueError, TypeError):
             parser.error("'%s' is not a valid list of components" % values)
 
         setattr(namespace, self.dest, component_list_decoded)
@@ -71,10 +204,21 @@ class ComponentAction(argparse.Action):
 class RecorderParser(object):
     '''
     Parses command line arguments to configure the property recorder
+
     Also provides some textual help to the user
     '''
-    def __init__(self, cmdline=None):
+    def __init__(self, config=None):
+        '''
+        ctor
 
+        @param config: configuration of the font-end
+        to be used optionally to avoid the argparse itself
+        and for the unit tests.
+        @type config: string
+        @see:
+        ctamonitoring.property_recorder.test_standalone_recorder.RecorderParserTest
+        for an example to set the config as an argument.
+        '''
         argparser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
 
         argparser.add_argument(
@@ -160,8 +304,8 @@ class RecorderParser(object):
             action='store_true',
             help='to display in the console for all level messages')
 
-        if cmdline is not None:
-            args = argparser.parse_args(cmdline)
+        if config is not None:
+            args = argparser.parse_args(config)
         else:
             args = argparser.parse_args()
 
@@ -182,12 +326,13 @@ class RecorderParser(object):
         else:
             return logging.INFO
 
-    def feed_config(self):
+    def get_config(self):
         '''
-        Factory to create, from the parsed configuration data,
-        an object RecorderConfig
+        Factory to create the configuration of the recorder
 
-        returns RecorderConfig
+        The configuration will be created from the parsed configuration data.
+        @return: Configuration of the recorder.
+        @rtype: ctamonitoring.property_recorder.config.RecorderConfig
         '''
         recorder_config = RecorderConfig()
 
@@ -213,101 +358,15 @@ class RecorderParser(object):
         return recorder_config
 
 
-class StandaloneRecorder(object):
-
-    def __init__(self, recorder_config, verbosity):
-        '''
-        @var recorder_config: the configuration of the recorder
-        @type recorder_config: RecorderConfig
-        @var verbosity: the verbosity of the logger
-        @type verbosity: int
-        '''
-
-        self._my_acs_client = PySimpleClient()
-
-        self._logger = self._my_acs_client.getLogger()
-
-        self._logger.setLevel(verbosity)
-
-        self._canceled = False
-
-        self.recorder_config = recorder_config
-
-        self.recorder = FrontEnd(recorder_config, self._my_acs_client)
-
-        self._logger.info('Property recorder up')
-
-    def make_new_acs_client(self):
-
-        print 'updating client'
-
-        self._my_acs_client = PySimpleClient()
-
-        self._logger = self._my_acs_client.getLogger()
-
-        self._logger.setLevel(verbosity)
-
-        # TODO: The 3 lines above are duplicated and could be merged
-
-        print 'dending updated client to front_end'
-
-        self.recorder.update_acs_client(self._my_acs_client)
-
-    def start(self):
-        if self._canceled:
-            raise RuntimeError("The recorded is cancelled")
-
-        self.recorder.start_recording()
-        self._logger.info('Recording start')
-
-    def stop(self):
-        if self._canceled:
-            raise RuntimeError("The recorded is cancelled")
-        self.recorder.stop_recording()
-        self._logger.info('Recording stop')
-
-    def close(self):
-        if not self._canceled:
-            self._logger.info('Switching off property recorder')
-            self.stop()
-            self.recorder.cancel()
-            self.recorder = None
-            self.recorder_config = None
-            self._my_acs_client.disconnect()
-            self._my_acs_client = None
-            self._canceled = True
-
-    def _is_acs_client_ok(self):
-        return self.recorder._is_acs_client_ok
-
-    def __del__(self):
-        try:
-            if not self._canceled:
-                try:
-                    self.close()
-                except:
-                    self._log.warn("could not stop")
-        except:
-            pass
-
-    def print_config(self):
-
-        self._logger.debug(
-            'Property Recorder Configuration'
-            '\n--------------------------------------\n' +
-            pprint.pformat(vars(self.recorder_config)) +
-            '\n--------------------------------------')
-
-
 if __name__ == "__main__":
 
     # Configure
-    parser = RecorderParser()
-    recorder_config = parser.feed_config()
-    verbosity = parser.get_verbosity()
+    my_parser = RecorderParser()
+    my_recorder_config = my_parser.get_config()
+    my_verbosity = my_parser.get_verbosity()
 
     # Create a recorder.
-    recorder = StandaloneRecorder(recorder_config, verbosity)
+    recorder = StandaloneRecorder(my_recorder_config, my_verbosity)
 
     # Show the configuration
     recorder.print_config()
@@ -319,10 +378,10 @@ if __name__ == "__main__":
     try:
         while True:
             time.sleep(10)
-            if not recorder._is_acs_client_ok():
+            if not recorder.is_acs_client_ok():
                 try:
                     recorder.make_new_acs_client()
-                except Exception:
+                except CORBAProblemExImpl:
                     # We get an exception if ACS is down, so we give him time
                     print 'ACS is down, will wait 10 sec. for its recovery'
     except KeyboardInterrupt:

@@ -21,7 +21,7 @@ class Defaults:
     max_comps = 100
     max_props = 1000
     checking_period = 10  # seconds
-    backend_type = BackendType.LOG
+    backend_type = BackendType.DUMMY
     components = set()
     backend_config = None
     is_include_mode = False

@@ -79,6 +79,9 @@ class FrontEnd(object):
         acs_client      -- the instance of the ACS client, or component where
                            the recorder is hosted, that provides access to
                            the ACS world
+
+        @ivar is_acs_client_ok: status of the ACS client
+        @type is_acs_client_ok: bool
         '''
 
         self.name = recorder_component_name
@@ -112,6 +115,15 @@ class FrontEnd(object):
         self._is_acs_client_ok = True
 
         self._canceled = False
+
+    @property
+    def is_acs_client_ok(self):
+        return self._is_acs_client_ok
+
+    @is_acs_client_ok.setter
+    def is_acs_client_ok(self, components):
+        raise NotImplementedError(
+            "Cannot mutate, it is handled internally")
 
     def cancel(self):
         """

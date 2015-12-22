@@ -77,7 +77,7 @@ class PropertyTypeUtil():
     _cbMap[constants.RWSTRINGSEQ_NP_REP_ID] = PropertyType.STRING_SEQ
 
     @staticmethod
-    def get_property_type(repID):
+    def get_property_type(rep_id):
         '''
         Returns the enum type of the property for the
         ND_Repository_ID of the property
@@ -89,12 +89,12 @@ class PropertyTypeUtil():
 
         '''
         try:
-            if PropertyTypeUtil._cbMap[repID] is None:
-                raise TypeError("The type " + repID + " is not supported")
+            if PropertyTypeUtil._cbMap[rep_id] is None:
+                raise TypeError("The type " + rep_id + " is not supported")
                 # throw an unsuported exception
             else:
                 return (
-                    PropertyTypeUtil._cbMap[repID]
+                    PropertyTypeUtil._cbMap[rep_id]
                 )
 
         # If key error, then it is probably an enum
@@ -247,7 +247,9 @@ class ComponentUtil(object):
 
 
 class AttributeDecoder(object):
-
+    '''
+    Allows to decode the entries in the CDB doing the necessary parsing
+    '''
     @staticmethod
     def _decode_none(value):
         '''
@@ -317,7 +319,9 @@ class AttributeDecoder(object):
 
 
 class EnumUtil(object):
-
+    '''
+    This class allows to convert enums from and to strings
+    '''
     @staticmethod
     def from_string(enum_type, name):
         '''
@@ -329,4 +333,7 @@ class EnumUtil(object):
 
     @staticmethod
     def to_string(enum_value):
+        '''
+        Converts the enum into a string
+        '''
         return enum_value.key

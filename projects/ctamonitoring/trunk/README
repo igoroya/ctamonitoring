@@ -11,6 +11,8 @@ PATH=$PATH:~/.local/bin
 
 pip install --user enum
 pip install --user pymongo
+pip install --user mock
 
 (tested with pymongo-3.1.1)
 (enum Version: 0.4.6)
+(mock version 1.3)

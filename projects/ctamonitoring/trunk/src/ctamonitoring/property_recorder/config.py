@@ -47,7 +47,7 @@ class RecorderConfig(object):
     @ivar checking_period: Period in seconds to check for lost components
     or new components (default 10 s)
     @ivar backend_type: The backend to be used in the recorder
-    (Default LOG)
+    (Default DUMMY)
     @type backend_type: ctamonitoring.property_recorder.BackendType
     @ivar backend_config: Configuration parameters for the backend
     (Default None)
@@ -74,7 +74,7 @@ class RecorderConfig(object):
         # number or more
         self._max_props = 1000
         self._checking_period = 10  # seconds
-        self._backend_type = BackendType.LOG
+        self._backend_type = BackendType.DUMMY
         self.backend_config = None
 
         self._is_include_mode = False
