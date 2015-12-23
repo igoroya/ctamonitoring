@@ -13,13 +13,16 @@ recorder to work are included here
 '''
 from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder import constants
-from ctamonitoring.property_recorder.constants import DecodeMethod
+from ctamonitoring.property_recorder.constants import DECODE_METHOD
 from ctamonitoring.property_recorder.frontend_exceptions import (
     ComponenNotFoundError,
-    WrongComponenStateError
+    WrongComponenStateError,
+    UnsupporterPropertyTypeError
     )
 from Acspy.Common.Log import getLogger
 import ast
+from Acspy.Common import CDBAccess  # these are necessary for python components
+from Acspy.Util import XmlObjectifier  # as before
 
 __version__ = "$Id$"
 
@@ -90,8 +93,7 @@ class PropertyTypeUtil():
         '''
         try:
             if PropertyTypeUtil._cbMap[rep_id] is None:
-                raise TypeError("The type " + rep_id + " is not supported")
-                # throw an unsuported exception
+                raise UnsupporterPropertyTypeError("The type " + rep_id + " is not supported")
             else:
                 return (
                     PropertyTypeUtil._cbMap[rep_id]
@@ -119,13 +121,14 @@ class PropertyTypeUtil():
 
         '''
 
+        # TODO: make a logger at module level. Then activate the warninigd below
         logger = getLogger('ctamonitoring.property_recorder.util')
 
         try:
             enumValues = prop.get_characteristic_by_name(
                 "statesDescription").value().split(', ')
         except Exception:
-            logger.logWarning('No statesDescription found in the CDB')
+            #logger.logWarning('No statesDescription found in the CDB')
             raise AttributeError
 
         enumDict = {}
@@ -135,8 +138,8 @@ class PropertyTypeUtil():
             enumDict[string] = item.strip()
             i += 1
         if len(enumDict) < 2:
-            logger.logWarning(
-                'Less than 2 states found, no sense on using a string rep.')
+            #logger.logWarning(
+            #    'Less than 2 states found, no sense on using a string rep.')
             raise ValueError
 
         return enumDict
@@ -198,7 +201,7 @@ class ComponentUtil(object):
         '''
         try:
             component.find_characteristic("*")
-        except Exception:
+        except AttributeError:
             return False
         else:
             return True
@@ -209,11 +212,12 @@ class ComponentUtil(object):
         Check if the component is a Python characteristic
         component.
 
-        Returns true if it is the case
-
-        Raise an exception if it is not a characteristic component
+        @return:  true if it is a python characteristic component,
+        false if it a c++ or Java charateristic component
+        @rtype: boolean
+        @raise AttributeError: if it is not a characteristic component
         '''
-        return (component.find_characteristic("*") == 0)
+        return (len(component.find_characteristic("*")) == 0)
 
     @staticmethod
     def is_a_property_recorder_component(component):
@@ -245,6 +249,24 @@ class ComponentUtil(object):
 
         return True
 
+    @staticmethod
+    def get_objectified_cdb(component):
+        '''
+        Obtains the list of properties from the CDB as objects
+    
+        This needs to be used for python characteristic components,
+        as the property attributes are empty for those components.
+        Would work for any component but the performance woulf be affected,
+        and it is only recommended for Python components
+
+        @returns: element list
+        @rtype: xml.dom.minicompat.NodeList
+        '''
+        cdb = CDBAccess.cdb()
+        componentCDBXML = cdb.get_DAO('alma/%s' % (component.name))
+        cdb_entry = XmlObjectifier.XmlObject(componentCDBXML)
+        return cdb_entry.getElementsByTagName("*")
+
 
 class AttributeDecoder(object):
     '''
@@ -263,7 +285,10 @@ class AttributeDecoder(object):
         This is used with variables that are no strings, that need
         to be decoded
         '''
-        return ast.literal_eval(value)
+        try:
+            return ast.literal_eval(value)
+        except SyntaxError:
+            return None
 
     @staticmethod
     def _decode_ast_literal_hybrid(value):
@@ -291,14 +316,16 @@ class AttributeDecoder(object):
         '''
         Picks the correct decoding method
         Raises an exception when the decoding method is not supported
+        @raises ValueError:
+        @raises TypeError
         '''
-        if decode_method is DecodeMethod.NONE:
+        if decode_method is DECODE_METHOD.NONE:
             return AttributeDecoder._decode_none(value)
-        elif decode_method is DecodeMethod.AST_LITERAL:
+        elif decode_method is DECODE_METHOD.AST_LITERAL:
             return AttributeDecoder._decode_ast_literal(value)
-        elif decode_method is DecodeMethod.AST_LITERAL_HYBRID:
+        elif decode_method is DECODE_METHOD.AST_LITERAL_HYBRID:
             return AttributeDecoder._decode_ast_literal_hybrid(value)
-        elif decode_method is DecodeMethod.UTF8:
+        elif decode_method is DECODE_METHOD.UTF8:
             return AttributeDecoder._decode_utf8(value)
         else:
             raise ValueError("decode_method is not supported")
@@ -306,7 +333,7 @@ class AttributeDecoder(object):
     @staticmethod
     def decode_boolean(value):
         '''
-        Returns a Python boolean when a cdb boolean attrib is provided,
+        Returns a boolean when a cdb boolean attrib is provided,
         otherwise None
         '''
         try:

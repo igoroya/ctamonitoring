@@ -1,3 +1,4 @@
+__version__ = "$Id$"
 '''
 This module includes the implementations of Python ACS callback
 classes for use in the PropertyRecorder component. The purpose
@@ -10,7 +11,7 @@ ArchCBpatternStringRep allows to insert the string representation of a Enum.
 
 
 @author: igoroya
-@organization: DESY
+@organization: DESY Zeuthen
 @copyright: cta-observatory.org
 @version: $Id$
 @change: $LastChangedDate$
@@ -28,7 +29,6 @@ from ctamonitoring.property_recorder.backend.exceptions import (
     )
 from Acspy.Common.Log import getLogger
 
-__version__ = "$Id$"
 
 
 class BaseArchCB:

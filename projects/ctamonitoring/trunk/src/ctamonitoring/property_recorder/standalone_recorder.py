@@ -34,7 +34,7 @@ import time
 from Acspy.Clients.SimpleClient import PySimpleClient
 from ctamonitoring.property_recorder.config import RecorderConfig
 from ctamonitoring.property_recorder.front_end import FrontEnd
-from ctamonitoring.property_recorder.config import BackendType
+from ctamonitoring.property_recorder.config import BACKEND_TYPE
 from ctamonitoring.property_recorder.util import EnumUtil
 from ACSErrTypeCommonImpl import CORBAProblemExImpl
 
@@ -175,16 +175,16 @@ class ValidBackendAction(argparse.Action):
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         try:
-            assert values in BackendType
+            assert values in BACKEND_TYPE
         except AssertionError:
-            allowed = str(BackendType._keys)
+            allowed = str(BACKEND_TYPE._keys)
             parser.error(
                 "'%s' is not a valid backend type. Allowed values are: '%s'"
                 % (values, allowed))
 
         setattr(
             namespace, self.dest,
-            EnumUtil.from_string(BackendType, values)
+            EnumUtil.from_string(BACKEND_TYPE, values)
             )
 
 
@@ -278,7 +278,7 @@ class RecorderParser(object):
             dest='backend_type',
             type=str,
             help='The backends to be used, available one are '
-                 + str(BackendType._keys))
+                 + str(BACKEND_TYPE._keys))
         argparser.add_argument(
             '--backend_config', action=ConfigBackendAction,
             dest='backend_config',

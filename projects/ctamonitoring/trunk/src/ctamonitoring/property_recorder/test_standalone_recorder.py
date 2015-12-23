@@ -24,7 +24,7 @@ Unit test module for test_config
 import unittest
 import logging
 from ctamonitoring.property_recorder.config import (
-    BackendType, RecorderConfig)
+    BACKEND_TYPE, RecorderConfig)
 from ctamonitoring.property_recorder.standalone_recorder import (
     RecorderParser, StandaloneRecorder)
 from ctamonitoring.property_recorder.front_end import FrontEnd
@@ -105,7 +105,7 @@ class RecorderParserTest(unittest.TestCase):
         self.max_comps = 80
         self.max_props = 300
         self.checking_period = 7  # seconds
-        self.backend_type = BackendType.MONGODB
+        self.backend_type = BACKEND_TYPE.MONGODB
         self.backend_config = {'database': 'ctamonitoring'}
         self.is_include_mode = True
         self.components = set(['a', 'b'])

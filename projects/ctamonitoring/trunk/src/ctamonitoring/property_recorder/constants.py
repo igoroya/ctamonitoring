@@ -1,21 +1,25 @@
+__version__ = "$Id$"
 '''
+Collection of constants and hard-codes for the project
+
 Contains the constants used by the property recorder
 In particular, those values required to identify the
 property type from the NP_RepositoryId and the list
-of the possible attributes of a propery
+of the possible attributes of a property
 
 @author: igoroya
-@organization: HU Berlin
+@organization: DESY Zeuthen
 @copyright: cta-observatory.org
 @version: $Id$
 @change: $LastChangedDate: 2015-04-14 19:13:23 +0200 (Tue, 14 Apr 2015)
 @change: $LastChangedBy$
 
 '''
+
+
 from enum import Enum
 from collections import namedtuple
 
-__version__ = "$Id$"
 
 RECORDER_NP_REP_ID = 'IDL:cta/actl/PropertyRecorder:1.0'
 RODOUBLE_NP_REP_ID = 'IDL:alma/ACS/ROdouble:1.0'
@@ -63,73 +67,80 @@ ROONOFFSWITCH_NP_REP_ID = 'IDL:alma/ACS/ROOnOffSwitch:1.0'
 RWONOFFSWITCH_NP_REP_ID = 'IDL:alma/ACS/RWOnOffSwitch:1.0'
 
 
-DecodeMethod = Enum('NONE', 'AST_LITERAL', 'AST_LITERAL_HYBRID', 'UTF8')
+DECODE_METHOD = Enum('NONE', 'AST_LITERAL', 'AST_LITERAL_HYBRID', 'UTF8')
+'''
+Methods to decode the entry from the CDB. Depends on the type
+'''
 
-AttributeInfo = namedtuple('name', 'name, decoding, isPositive, yes_synonyms')
+ATTRIBUTE_INFO = namedtuple('name', 'name, decoding, isPositive, yes_synonyms')
+'''
+Information that each attribute has.
 
+Used for correct decoding and to check its correctness
+'''
 
 PROPERTY_ATTRIBUTES = [
-    AttributeInfo(
-        'archive_priority', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'archive_priority', DECODE_METHOD.AST_LITERAL,
         False, None),
-    AttributeInfo(
-        'name', DecodeMethod.NONE,
+    ATTRIBUTE_INFO(
+        'name', DECODE_METHOD.NONE,
         False, None),
-    AttributeInfo(
-        'archive_min_int', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'archive_min_int', DECODE_METHOD.AST_LITERAL,
         True, None),
-    AttributeInfo(
-        'archive_max_int', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'archive_max_int', DECODE_METHOD.AST_LITERAL,
         True, None),
-    AttributeInfo(
-        'archive_mechanism', DecodeMethod.NONE,
+    ATTRIBUTE_INFO(
+        'archive_mechanism', DECODE_METHOD.NONE,
         False, None),
-    AttributeInfo(
-        'archive_delta', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'archive_delta', DECODE_METHOD.AST_LITERAL,
         True, None),
-    AttributeInfo(
-        'archive_delta_percent', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'archive_delta_percent', DECODE_METHOD.AST_LITERAL,
         True, None),
-    AttributeInfo(
-        'default_timer_trig', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'default_timer_trig', DECODE_METHOD.AST_LITERAL,
         True, None),
-    AttributeInfo(
-        'default_value', DecodeMethod.AST_LITERAL_HYBRID,
+    ATTRIBUTE_INFO(
+        'default_value', DECODE_METHOD.AST_LITERAL_HYBRID,
         False, None),
-    AttributeInfo(
-        'description', DecodeMethod.NONE, False, None),
-    AttributeInfo('format', DecodeMethod.NONE, False, None),
-    AttributeInfo(
-        'graph_max', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'description', DECODE_METHOD.NONE, False, None),
+    ATTRIBUTE_INFO('format', DECODE_METHOD.NONE, False, None),
+    ATTRIBUTE_INFO(
+        'graph_max', DECODE_METHOD.AST_LITERAL,
         False, None),
-    AttributeInfo(
-        'graph_min', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'graph_min', DECODE_METHOD.AST_LITERAL,
         False, None),
-    AttributeInfo(
-        'min_delta_trig', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'min_delta_trig', DECODE_METHOD.AST_LITERAL,
         True, None),
-    AttributeInfo(
-        'min_step', DecodeMethod.AST_LITERAL, True, None),
-    AttributeInfo(
-        'min_timer_trig', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'min_step', DECODE_METHOD.AST_LITERAL, True, None),
+    ATTRIBUTE_INFO(
+        'min_timer_trig', DECODE_METHOD.AST_LITERAL,
         True, None),
-    AttributeInfo(
-        'resolution', DecodeMethod.AST_LITERAL,
+    ATTRIBUTE_INFO(
+        'resolution', DECODE_METHOD.AST_LITERAL,
         True, None),
-    AttributeInfo('units', DecodeMethod.UTF8, False, None),
-    AttributeInfo(
-        'condition', DecodeMethod.NONE, False, None),
-    AttributeInfo(
-        'bitDescription', DecodeMethod.NONE, False, None),
-    AttributeInfo(
-        'statesDescription', DecodeMethod.NONE,
+    ATTRIBUTE_INFO('units', DECODE_METHOD.UTF8, False, None),
+    ATTRIBUTE_INFO(
+        'condition', DECODE_METHOD.NONE, False, None),
+    ATTRIBUTE_INFO(
+        'bitDescription', DECODE_METHOD.NONE, False, None),
+    ATTRIBUTE_INFO(
+        'statesDescription', DECODE_METHOD.NONE,
         False, None),
-    AttributeInfo(
-        'whenCleared', DecodeMethod.NONE, False, None),
-    AttributeInfo(
-        'whenSet', DecodeMethod.NONE, False, None),
-    AttributeInfo(
-        'archive_suppress', DecodeMethod.NONE, False,
+    ATTRIBUTE_INFO(
+        'whenCleared', DECODE_METHOD.NONE, False, None),
+    ATTRIBUTE_INFO(
+        'whenSet', DECODE_METHOD.NONE, False, None),
+    ATTRIBUTE_INFO(
+        'archive_suppress', DECODE_METHOD.NONE, False,
         ['yes', 'true']),
 ]
 '''

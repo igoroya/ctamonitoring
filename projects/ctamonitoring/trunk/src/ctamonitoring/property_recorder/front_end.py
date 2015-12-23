@@ -12,7 +12,7 @@ Contains exceptions that could be raised by the front-end module
 import threading
 import collections
 from __builtin__ import str
-from ctamonitoring.property_recorder.config import backend_registries
+from ctamonitoring.property_recorder.config import BACKEND_REGISTRIES
 from ctamonitoring.property_recorder.config import PropertyAttributeHandler
 from ctamonitoring.property_recorder.util import PropertyTypeUtil
 from ctamonitoring.property_recorder.util import ComponentUtil
@@ -21,6 +21,7 @@ from ctamonitoring.property_recorder.callbacks import CBFactory
 from ACS import CBDescIn  # @UnresolvedImport
 from ctamonitoring.property_recorder.frontend_exceptions import UnsupporterPropertyTypeError,\
     ComponenNotFoundError, WrongComponenStateError, AcsIsDownError
+from CORBA import UNKNOWN  # @UnresolvedImport
 
 PropertyType = property_type.PropertyType
 
@@ -170,10 +171,10 @@ class FrontEnd(object):
 
     def _setup_backend(self):
         if self.recorder_config.backend_config is None:
-            self._registry = backend_registries[
+            self._registry = BACKEND_REGISTRIES[
                 self.recorder_config.backend_type]()
         else:
-            self._registry = backend_registries[
+            self._registry = BACKEND_REGISTRIES[
                 self.recorder_config.backend_type](
                     **self.recorder_config.backend_config)
 
@@ -431,64 +432,134 @@ class FrontEnd(object):
             self.logger.logDebug("Component is not characteristic")
             return monitor_list
 
-        chars = component.find_characteristic("*")
+        try:
+            is_python = ComponentUtil.is_python_char_component(component)
+            self.logger.logDebug(
+                'Python component found')
+        except AttributeError:
+            return monitor_list
 
-        for count in range(0, len(chars)):
-            myCharList = component_reference.get_characteristic_by_name(
-                str(chars[count])).value().split(',')
-            # As a way of discerning from a property to other type of
-            # characteristic, I check for the length of the char list. If it is
-            # longer than 5, then is probably a property
-            if (len(myCharList) > 5):
-                self.logger.logDebug(
-                    'probably is a property, trying to get the information '
-                    'for the archive')
+        '''
+        Explanation of what is done bellow:
 
-                # Check if the characteristic is a property
+        We check if the component is Python or not. This must be done because
+        Python characteristic components have to be handled differently
+        (I suspect that this is missing implementation and not intentional),
+        as the attributes from the component and properties from the CDB are
+        not accessible from the component/property objects. To get access to
+        these, one needs to use the cdb access and the XML objectifier,
+        seePropertyAttributeHandler.get_prop_attribs_cdb_xml
+        This would work for any property type and implementation language,
+        but creates a clearly worse performance and therefore is only used for
+        Python
+        '''
 
+        if is_python:
+            self.logger.logDebug(
+                'probably is a property, trying to get the information '
+                'for the archive')
+            obj_chars = ComponentUtil.get_objectified_cdb(component)
+            for obj_char in obj_chars:
                 try:
-                    acs_property = self._get_acs_property(
-                        component, chars[count])
-                except AttributeError:
-                    continue
-
-                if acs_property is None:
-                    continue
-
-                if not PropertyTypeUtil.is_property_ok(acs_property):
+                    acs_property = self._get_property_object(
+                        component, obj_char.nodeName)
+                except (AttributeError, ValueError):
                     continue
 
                 property_attributes = (
-                    PropertyAttributeHandler.get_prop_attribs_cdb(
-                        acs_property,
-                        ComponentUtil.is_python_char_component(component))
-                    )
+                    PropertyAttributeHandler.get_prop_attribs_cdb_xml(
+                        obj_char))
 
-                try:
-                    my_buffer = self._create_buffer(
-                        acs_property,
-                        property_attributes,
-                        component_reference
-                        )
-                except Exception:
-                    self.logger.exception(
-                        "The buffer could not be created")
-                    continue
-
-                try:
-                    property_monitor = self._create_monitor(
-                        acs_property,
-                        property_attributes,
-                        my_buffer)
-
-                except UnsupporterPropertyTypeError:
-                    self.logger.exception("")
-                    property_monitor = None
-
+                property_monitor = self._get_property_monitor(
+                    acs_property,
+                    property_attributes,
+                    component_reference)
                 if property_monitor is not None:
                     monitor_list.append(property_monitor)
 
+        else:
+            chars = component.find_characteristic("*")
+            for count in range(0, len(chars)):
+                myCharList = component_reference.get_characteristic_by_name(
+                    str(chars[count])).value().split(',')
+                """
+                As a way of discerning from a property to other type of
+                characteristic, I check for the length of the char list.
+                If it is longer than 5, then is probably a property
+                """
+                if (len(myCharList) > 5):
+                    self.logger.logDebug(
+                        'probably is a property, trying to get the '
+                        'information for the archive')
+
+                    # Check if the characteristic is a property
+                    try:
+                        acs_property = self._get_property_object(
+                            component,
+                            chars[count])
+                    except (AttributeError, ValueError):
+                        continue
+
+                    property_attributes = (
+                        PropertyAttributeHandler.get_prop_attribs_cdb(
+                            acs_property)
+                        )
+                    try:
+                        property_monitor = self._get_property_monitor(
+                            acs_property,
+                            property_attributes,
+                            component_reference)
+                        monitor_list.append(property_monitor)
+                    except UnsupporterPropertyTypeError:
+                        self.logger.exception(
+                            "Property type not supported")
+
         return monitor_list
+
+    def _get_property_object(self, component, property_name):
+        '''
+        @raises AttributeError: if the property could not be obtained
+        due to a wrong property name
+        @raises ValueError: if the property could be obtained, but is
+        of none value
+        @return: the ACS property object
+        '''
+        acs_property = self._get_acs_property(
+            component, property_name)
+        #  This can raise an AttributeError
+
+        if acs_property is None:
+            raise ValueError
+
+        if not PropertyTypeUtil.is_property_ok(acs_property):
+            raise ValueError
+
+        return acs_property
+
+    def _get_property_monitor(
+            self,
+            acs_property,
+            property_attributes,
+            component_reference):
+        '''
+        @return: the monitor of the property
+        @raise UnsupporterPropertyTypeError:
+        if the property type is not supported
+        '''
+        #  This can raise a UnsupporterPropertyTypeError
+        my_buffer = self._create_buffer(
+            acs_property,
+            property_attributes,
+            component_reference
+            )
+
+        #  This can raise a UnsupporterPropertyTypeError
+        property_monitor = self._create_monitor(
+            acs_property,
+            property_attributes,
+            my_buffer)
+
+        return property_monitor
 
     def _create_buffer(
             self, acs_property,
@@ -501,21 +572,15 @@ class FrontEnd(object):
         @type acs_property: ACS._objref_<prop_type>
 
         Raises:
-        TypeError -- If the property type is not supported
-        Exception  -- If any other problem happened when creating the buffers
+        @raise UnsupporterPropertyTypeError: if property type is not supported
         '''
-        my_prop_type = None
 
         component_name = component_reference._get_name()
         component_type = component_reference._NP_RepositoryId
 
-        try:
-            my_prop_type = PropertyTypeUtil.get_property_type(
-                acs_property._NP_RepositoryId)
-        except Exception, e:
-            self.logger.logWarning(
-                "Property type not supported, skipping")
-            raise TypeError(e)
+        #  This raises UnsupporterPropertyTypeError
+        my_prop_type = PropertyTypeUtil.get_property_type(
+            acs_property._NP_RepositoryId)
 
         # TODO: Think in what to do with the enum states
         enumStates = None
@@ -535,11 +600,8 @@ class FrontEnd(object):
                         self.logger.logDebug(
                             "Enum states do not make sense,"
                             "use the int representation")
-                    except Exception:
-                        self.logger.exception("")
 
         try:
-
             my_buffer = self._registry.register(
                 component_name=component_name,
                 component_type=component_type,
@@ -547,7 +609,6 @@ class FrontEnd(object):
                 property_type=my_prop_type,
                 property_type_desc=enumStates,
                 **property_attributes)
-
         except UserWarning:
             self.logger.logWarning(
                 "Warning of buffer being used received, forcing in")
@@ -634,6 +695,7 @@ class FrontEnd(object):
         Raises:
             AttributeError -- If the property could not be evaluated
                               in the component
+            ValueError: if the property value/state is not OK
         """
         my_prop_str = '_get_' + chars
 
@@ -641,14 +703,12 @@ class FrontEnd(object):
             "evaluating: "
             + str(component)
             + '._get_' + chars + '()')
-        try:
-            my_pro_attr = getattr(component, my_prop_str)
-            my_pro = my_pro_attr()
-        except AttributeError as e:
-            self.logger.logDebug(
-                "it was not possible to get the property, jumping to next one")
-            self.logger.exception("")
-            raise AttributeError(e)
+        try: 
+            my_pro_attr = getattr(component, my_prop_str)  # this raises an UNKNOWN
+            my_pro = my_pro_attr()  # this raises an attribute error
+        except UNKNOWN:
+            raise ValueError
+       
 
         return my_pro
 

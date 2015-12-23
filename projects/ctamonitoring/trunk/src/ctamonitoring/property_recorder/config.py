@@ -1,6 +1,9 @@
+__version__ = "$Id$"
 '''
-Module with all what is related to the configuration holding for the property
-recorder frontend
+Contains the configuration holder for the property recorder
+
+The module with contains all what is related to the configuration holding
+for the property recorder frontend
 
 @author: igoroya
 @organization: DESY Zeuthen
@@ -8,9 +11,17 @@ recorder frontend
 @version: $Id$
 @change: $LastChangedDate$
 @change: $LastChangedBy$
-@requires: Enum
-@requires: ast.literal_eval
+@requires: enum
+@requires: ACS
+@requires: ctamonitoring.property_recorder.backend
+@requires: ctamonitoring.property_recorder.constants
+@requires: ctamonitoring.property_recorder.util
+@requires: Acspy.Common.Log
+@requires: Acspy.Common
+@requires: Acspy.Util
 '''
+
+
 from ctamonitoring.property_recorder.backend import get_registry_class
 from enum import Enum
 from ACS import NoSuchCharacteristic  # @UnresolvedImport
@@ -18,16 +29,15 @@ from ctamonitoring.property_recorder.constants import PROPERTY_ATTRIBUTES
 from ctamonitoring.property_recorder.util import AttributeDecoder
 from Acspy.Common.Log import getLogger
 
-__version__ = "$Id$"
 
-BackendType = Enum('DUMMY', 'LOG', 'MYSQL', 'MONGODB')
+BACKEND_TYPE = Enum('DUMMY', 'LOG', 'MYSQL', 'MONGODB')
 
 
-backend_registries = {}
-backend_registries[BackendType.DUMMY] = get_registry_class("dummy")
-backend_registries[BackendType.LOG] = get_registry_class("log")
-backend_registries[BackendType.MYSQL] = None
-backend_registries[BackendType.MONGODB] = get_registry_class("mongodb")
+BACKEND_REGISTRIES = {}
+BACKEND_REGISTRIES[BACKEND_TYPE.DUMMY] = get_registry_class("dummy")
+BACKEND_REGISTRIES[BACKEND_TYPE.LOG] = get_registry_class("log")
+BACKEND_REGISTRIES[BACKEND_TYPE.MYSQL] = None
+BACKEND_REGISTRIES[BACKEND_TYPE.MONGODB] = get_registry_class("mongodb")
 
 
 class RecorderConfig(object):
@@ -48,7 +58,7 @@ class RecorderConfig(object):
     or new components (default 10 s)
     @ivar backend_type: The backend to be used in the recorder
     (Default DUMMY)
-    @type backend_type: ctamonitoring.property_recorder.BackendType
+    @type backend_type: ctamonitoring.property_recorder.BACKEND_TYPE
     @ivar backend_config: Configuration parameters for the backend
     (Default None)
     @type backend_config: dict
@@ -64,7 +74,16 @@ class RecorderConfig(object):
 
     def __init__(self):
         '''
-        Initializes the values to those defined as default:
+        Initializes the values to those defined as default
+
+        The default values are:
+        default_timer_trigger = 60.0 seconds
+        max_comps = 100
+        max_props = 1000
+        checking_period (for new components) = 10 seconds
+        backend_type = BACKEND_TYPE.DUMMY
+        backend_config = None
+        is_include_mode = False
         '''
         # 1/min, units in in 100 of ns, OMG time
         self._default_timer_trigger = 60.0
@@ -74,7 +93,7 @@ class RecorderConfig(object):
         # number or more
         self._max_props = 1000
         self._checking_period = 10  # seconds
-        self._backend_type = BackendType.DUMMY
+        self._backend_type = BACKEND_TYPE.DUMMY
         self.backend_config = None
 
         self._is_include_mode = False
@@ -156,11 +175,11 @@ class RecorderConfig(object):
     @backend_type.setter
     def backend_type(self, backend_type):
         try:
-            BackendType._values.index(backend_type)
+            BACKEND_TYPE._values.index(backend_type)
         except ValueError:
             raise ValueError(
                 "Backend type not recognized. Supported types are " +
-                str(BackendType._keys))
+                str(BACKEND_TYPE._keys))
         self._backend_type = backend_type
 
     @property
@@ -208,41 +227,73 @@ class RecorderConfig(object):
         self._components = components
 
 
-# TODO: add a logger?
 class PropertyAttributeHandler(object):
     '''
-    Gets attributes from a property and creates a map with
-    attribute name, value
-
-    acs_property -- the ACS property
-    use_xml_objectifier -- If the XmlObjectifier needs to be used
-                           Note that it is much slower but the only solution
-                           for the Python components
+    Helper class to decode attributes properties
     '''
 
     @staticmethod
-    def get_prop_attribs_cdb(acs_property, use_xml_objectifier=False):
-        # getEnty = (if use_xml_objectifier
-        # PropertyAttributeHandler._getCdbEntryXmlObjectifier else
-        # PropertyAttributeHandler._getCdbEntry)
+    def get_prop_attribs_cdb(acs_property):
+        '''
+        Gets attributes from a property and creates a map with
+        attribute name, value
 
-        if use_xml_objectifier:
-            getEnty = PropertyAttributeHandler._getCdbEntryXmlObjectifier
-        else:
-            getEnty = PropertyAttributeHandler._getCdbEntry
+        @param acs_property: the ACS property object
+        @return: dictionary of attribute types and values
+        @rtype: dictionary
+        '''
 
         attributes = {}
         for attribute in PROPERTY_ATTRIBUTES:
-            attributes[attribute.name] = getEnty(attribute, acs_property)
+            attributes[attribute.name] = (
+                PropertyAttributeHandler._get_cdb_entry(
+                    attribute, acs_property)
+                )
 
         attributes['name'] = acs_property._get_name()
 
         return attributes
 
     @staticmethod
-    def _getCdbEntry(attribute, acs_property):
+    def get_prop_attribs_cdb_xml(acs_property):
         '''
-        Used with Java and C++ components
+        Gets attributes from a property from an objectified XML
+
+        Gets attributes from a property using the XML objectifier
+        by creating a map of attribute name, value.
+
+        This needs to be used for python characteristic components,
+        as the property attributes are empty for those components.
+
+        @see:
+        ctamonitoring.property_recorder.util.ComponentUtil.get_objectified_cdb
+
+        @param acs_property: the ACS property from the objectified XML
+        @return: dictionary of attribute types and values
+        @rtype: dictionary
+        '''
+
+        attributes = {}
+        for attribute in PROPERTY_ATTRIBUTES:
+            attributes[attribute.name] = (
+                PropertyAttributeHandler._get_cdb_entry_xml(
+                    attribute, acs_property)
+            )
+
+        attributes['name'] = acs_property.nodeName
+
+        return attributes
+
+    @staticmethod
+    def _get_cdb_entry(attribute, acs_property):
+        '''
+        Decode a cdb attribute entry for a property
+
+        Stardard method, used with Java and C++ components
+        @param attribute: attribute name to get
+        @type attribute: string
+        @param acs_property: the ACS property
+        @return: decoded cdb entry
         '''
 
         try:
@@ -258,34 +309,38 @@ class PropertyAttributeHandler(object):
             attribute, raw_value)
 
     @staticmethod
-    def _getCdbEntryXmlObjectifier(attribute, acs_property_cdb):
+    def _get_cdb_entry_xml(attribute, acs_property_cdb):
         '''
-        Used with Python components
-        Would also work with C++ and Java components but the
-        performance is much worse
+        Decode a cdb attribute entry for a property
+
+        Used with Python components Would also work with C++ and Java
+        components but the performance is much worse
+
+        @param attribute: attribute name to get
+        @type attribute: string
+        @param acs_property_cdb: the ACS property objectified CDB
+        @type acs_property_cdb: xml.dom.minidom.Element
+        @return: decoded cdb entry
         '''
-        raw_value = acs_property_cdb.firstChild.getAttribute(
-            attribute.name).decode()
+        raw_value = acs_property_cdb.getAttribute(attribute.name)
         return PropertyAttributeHandler._process_attribute(
             attribute, raw_value)
 
     @staticmethod
     def _process_attribute(attribute, raw_value):
-        logger = getLogger('property_recorder.config.PropertyAttributeHandler')
+        # TODO: make a logger at module level. Then activate the warninigd below
+        # logger = getLogger('property_recorder.config.PropertyAttributeHandler')
         try:
             value = AttributeDecoder.decode_attribute(
                 raw_value, attribute.decoding)
         except ValueError:
+            # logger.debug("Could not decode attribute, try a boolean", exc_info=True)
             # If is boolean and the decoding fails we try to catch it here
             try:
                 value = AttributeDecoder.decode_boolean(raw_value)
-            except ValueError:
+            except (ValueError, TypeError):
+                # logger.debug("Could not decode attribute", exc_info=True)
                 value = None
-            except TypeError:
-                value = None
-        except Exception:
-            logger.exception("")
-            value = None
 
         # Check those cases when it has to be positive
         if (attribute.isPositive) and (value is not None) and (value < 0.0):

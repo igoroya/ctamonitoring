@@ -1,3 +1,4 @@
+__version__ = "$Id: test_util.py 1654 2015-12-22 11:07:42Z igoroya $"
 '''
 Unit test module for util
 
@@ -12,6 +13,12 @@ the module testacsproperties is used.
 @version: $Id: test_front_end.py 1168 2015-04-13 18:42:27Z igoroya $
 @change: $LastChangedDate: 2015-04-13 20:42:27 +0200 (Mon, 13 Apr 2015) $
 @change: $LastChangedBy: igoroya $
+@requires: unittest
+@requires: ctamonitoring.property_recorder.util
+@requires: logging
+@requires: ctamonitoring.property_recorder.backend
+@requires: enum
+@requires: ctamonitoring.property_recorder.constants
 '''
 
 import unittest
@@ -21,7 +28,7 @@ from Acspy.Clients.SimpleClient import PySimpleClient
 import logging
 from ctamonitoring.property_recorder.backend import property_type
 from enum import Enum
-from ctamonitoring.property_recorder.constants import DecodeMethod
+from ctamonitoring.property_recorder.constants import DECODE_METHOD
 
 PropertyType = property_type.PropertyType
 
@@ -360,7 +367,7 @@ class AttributeDecoderTest(unittest.TestCase):
             1,
             AttributeDecoder.decode_attribute(
                 a_num,
-                DecodeMethod.AST_LITERAL
+                DECODE_METHOD.AST_LITERAL
                 )
             )
 
@@ -368,7 +375,7 @@ class AttributeDecoderTest(unittest.TestCase):
             1,
             AttributeDecoder.decode_attribute(
                 a_num,
-                DecodeMethod.AST_LITERAL_HYBRID
+                DECODE_METHOD.AST_LITERAL_HYBRID
                 )
             )
 
@@ -376,7 +383,7 @@ class AttributeDecoderTest(unittest.TestCase):
             'hello',
             AttributeDecoder.decode_attribute(
                 a_no_decode,
-                DecodeMethod.NONE
+                DECODE_METHOD.NONE
                 )
             )
 
@@ -384,7 +391,7 @@ class AttributeDecoderTest(unittest.TestCase):
             'hello',
             AttributeDecoder.decode_attribute(
                 a_no_decode,
-                DecodeMethod.AST_LITERAL_HYBRID
+                DECODE_METHOD.AST_LITERAL_HYBRID
                 )
             )
 
@@ -392,7 +399,7 @@ class AttributeDecoderTest(unittest.TestCase):
             'my_text',
             AttributeDecoder.decode_attribute(
                 a_utf_8,
-                DecodeMethod.UTF8
+                DECODE_METHOD.UTF8
                 )
             )
 

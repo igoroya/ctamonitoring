@@ -8,7 +8,7 @@ from ctamonitoring.property_recorder.front_end import FrontEnd
 from ctamonitoring.property_recorder.frontend_exceptions import (
     BadCdbRecorderConfig)
 from ctamonitoring.property_recorder.util import EnumUtil
-from ctamonitoring.property_recorder.config import BackendType
+from ctamonitoring.property_recorder.config import BACKEND_TYPE
 # --ACS Imports----------------------------------------------------------
 from Acspy.Servants.CharacteristicComponent import CharacteristicComponent
 from Acspy.Servants.ContainerServices import ContainerServices
@@ -220,7 +220,7 @@ class RecorderConfigDecoder(object):
 
         try:
             recorder_config.backend_type = EnumUtil.from_string(
-                BackendType,
+                BACKEND_TYPE,
                 componentCDB.firstChild.getAttribute(
                     "backend").decode()
                 )
