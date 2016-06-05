@@ -37,8 +37,7 @@ DEBUG=on
 #
 # Configuration database schema Files
 # ------------------------------------
-CDB_SCHEMAS = PropertyRecorder PropertyRecorderDistributer
-							   
+CDB_SCHEMAS = PropertyRecorder
 #
 # IDL FILES
 #----------------------------
