@@ -52,6 +52,11 @@ USER_IDL =
 PY_PACKAGES = ctamonitoring
 
 #
+# Scripts
+# ----------------------------
+SCRIPTS=property_recorder_runner.sh
+
+#
 #>>>>> END OF standard rules
 
 #
