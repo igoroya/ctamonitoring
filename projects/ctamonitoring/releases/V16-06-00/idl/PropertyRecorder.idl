@@ -1,0 +1,52 @@
+#ifndef _CTA_ACTL_PROPERTY_RECORDER_IDL_
+#define _CTA_ACTL_PROPERTY_RECORDER_IDL_
+
+#include <baci.idl>
+#include <ACSErrTypeCommon.idl>
+#include <acscomponent.idl>
+
+#pragma prefix "cta"
+
+module actl {
+	
+
+	/**
+	* Interface for a property recorder component
+	* 
+	* The configuration of the property recorder do not change at
+	* runtime and loaded from the CDB. See component_recorder.py 
+	* for details
+	*/
+	interface PropertyRecorder : ACS::CharacteristicComponent{
+		/**
+		* Sends signal to start recording data from properties
+		*/
+	  	void startRecording();
+	  	/**
+	  	* Sends signal to stop recording and issues order to release references 
+	  	* and destroy existing monitors
+	  	*/
+	  	void stopRecording();
+	  	/**
+	  	* @return TRUE if recording, otherwise FALSE 
+	  	*/
+	  	boolean isRecording(); 
+		/**
+	  	* To check if a property recorder is full. 
+	  	* Full Property Recorders do not insert new components
+        * @return TRUE if it is full, FALSE otherwise
+	  	*/
+	  	boolean isFull();
+	  	/**
+	  	* Allows to insert one component from outside for recording the properties,
+        * regardless if it is in the include or exclude list 
+        *
+        * @param componentId  string with the component ID
+        * @throw ACSErrTypeCommon::CouldntPerformActionEx if the component could not be inserted
+	  	*/
+		void addComponent(in string componentId) raises (ACSErrTypeCommon::CouldntPerformActionEx);
+		
+	};
+};
+
+#endif

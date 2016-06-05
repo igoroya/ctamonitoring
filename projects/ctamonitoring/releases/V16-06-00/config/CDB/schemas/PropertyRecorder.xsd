@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+   - Example Configuration Database Schema for a actl property recorder
+   -
+   - Author: Igor Oya
+   -
+   - History:
+   -   2013-02-12  IO  Created
+   -   2013-03-12  IO  Added attributes to avoid hard-coding variables that should be changed frequently
+   -   TODO: How to create a schema that does not have an entry for a property? No way to see how to do that
+  --><xs:schema xmlns="urn:schemas-cosylab-com:PropertyRecorder:1.0" xmlns:baci="urn:schemas-cosylab-com:BACI:1.0" xmlns:cdb="urn:schemas-cosylab-com:CDB:1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="urn:schemas-cosylab-com:PropertyRecorder:1.0">
+  <xs:import namespace="urn:schemas-cosylab-com:CDB:1.0" schemaLocation="CDB.xsd"/>
+  <xs:import namespace="urn:schemas-cosylab-com:BACI:1.0" schemaLocation="BACI.xsd"/>
+  <xs:simpleType name="BackendType">
+	  <xs:restriction base="xs:string">
+    	<xs:enumeration value="DUMMY"/>
+    	<xs:enumeration value="LOG"/>
+    	<xs:enumeration value="MONGODB"/>
+   		<xs:enumeration value="MYSQL"/>
+   	  </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="PropertyRecorder">
+	<xs:complexContent>
+    <xs:extension base="baci:CharacteristicComponent">
+     <xs:sequence>
+      <xs:element name="dummy"/>
+ 	 </xs:sequence>
+  	<xs:attribute name="backend" type="BackendType" use="required"/>	
+  	<xs:attribute name="backend_config" type="xs:string" use="optional"/>	
+  	<xs:attribute name="default_timer_trigger" type="xs:double" use="optional"/>	
+  	<xs:attribute name="max_comps" type="xs:int" use="optional"/>
+  	<xs:attribute name="max_props" type="xs:int" use="optional"/>
+  	<xs:attribute name="checking_period" type="xs:int" use="optional"/>
+  	<xs:attribute name="is_include" type="xs:boolean" use="required"/>
+  	<xs:attribute name="component_list" type="xs:string" use="optional"/>	
+  	</xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+ <xs:element name="PropertyRecorder" type="PropertyRecorder"/>
+</xs:schema>
