@@ -93,7 +93,7 @@ class PropertyTypeUtil():
         '''
         try:
             if PropertyTypeUtil._cbMap[rep_id] is None:
-                raise UnsupporterPropertyTypeError("The type " + rep_id + " is not supported")
+                raise UnsupporterPropertyTypeError()
             else:
                 return (
                     PropertyTypeUtil._cbMap[rep_id]
@@ -213,7 +213,7 @@ class ComponentUtil(object):
         component.
 
         @return:  true if it is a python characteristic component,
-        false if it a c++ or Java charateristic component
+        false if it a c++ or Java characteristic component
         @rtype: boolean
         @raise AttributeError: if it is not a characteristic component
         '''

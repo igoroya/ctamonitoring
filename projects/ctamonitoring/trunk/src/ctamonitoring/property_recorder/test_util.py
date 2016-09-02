@@ -39,11 +39,12 @@ class PropertyTypeUtilTest(unittest.TestCase):
     the myC cpp container up
     '''
     def setUp(self):
-        # I was trying to make ACS up here for the test but does not work
-        # Perhaps is better to use TAT or some util used in that for this
+        # For this test to work one needs to have ACS up and running and a set 
+        # of ACS
+        # components in the CDB, as well as proper containers running
+        # TODO: Integrate this with TAT or other facility
         # I will assume that ACS is running, with the correct CDB, component
         # and container running
-        # TODO: Document!
 
         # set the corresponding ACS CDB
         # os.environ["ACS_CDB"] = "/vagrant/actl/testacsproperties/test"
@@ -312,8 +313,7 @@ class PropertyTypeUtilTest(unittest.TestCase):
 
 class ComponentUtilTest(unittest.TestCase):
     '''
-    This test requires ACS running with the default CDB and
-    the bilboContainer cpp container up
+    WRITE
 
     @TODO: create my own test CDB including the components that I need
     '''
@@ -326,8 +326,8 @@ class ComponentUtilTest(unittest.TestCase):
         self._my_acs_client.disconnect()
 
     def test_is_characteristic_component(self):
-        # Now check that I have a characteristic  component
-        my_component = self._my_acs_client.getComponent("CLOCK1", True)
+        my_component = self._my_acs_client.getComponent(
+            "TEST_PROPERTIES_COMPONENT", True)
         self.assertTrue(
             ComponentUtil.is_characteristic_component(my_component)
             )
@@ -337,16 +337,49 @@ class ComponentUtilTest(unittest.TestCase):
             ComponentUtil.is_characteristic_component(my_component2)
             )
 
+    def test_is_python_char_component(self):
+        my_component = self._my_acs_client.getComponent(
+            "TEST_PROPERTIES_PYTHON", True)
+        self.assertTrue(
+            ComponentUtil.is_python_char_component(my_component)
+            )
+        # Now check a component that is not characteristic
+
+        my_component2 = self._my_acs_client.getComponent(
+            "TIMER1", True)
+
+        self.assertRaises(
+            AttributeError,
+            ComponentUtil.is_python_char_component,
+            my_component2
+            )
+
+        my_component3 = self._my_acs_client.getComponent("TEST_PROPERTIES_COMPONENT", True)
+
+        self.assertFalse(
+            ComponentUtil.is_python_char_component(my_component3)
+            )
+
+    def test_is_a_property_recorder_component(self):
+        my_component = self._my_acs_client.getComponent(
+            "propertyRecorder1", True)
+        self.assertTrue(
+            ComponentUtil.is_a_property_recorder_component(my_component)
+            )
+        # Now check a component that is not characteristic
+        my_component2 = self._my_acs_client.getComponent("TIMER1", True)
+        self.assertFalse(
+            ComponentUtil.is_a_property_recorder_component(my_component2)
+            )
+
     # TODO: Test if the component is a property recorder component
     # --> Need to put adequate CDB
 
-    # TODO: Test if the component is a Python characteristic component
-    # --> Need to put adequate CDB
 
     def test_is_component_state_ok(self):
-        my_component = self._my_acs_client.getComponent("CLOCK1", True)
+        my_component = self._my_acs_client.getComponent("TEST_PROPERTIES_COMPONENT", True)
         self.assertTrue(
-            ComponentUtil.is_component_state_ok(my_component, "CLOCK1")
+            ComponentUtil.is_component_state_ok(my_component, "TEST_PROPERTIES_COMPONENT")
             )
 
 

@@ -56,7 +56,8 @@ from ACS import (
     _objref_RWpattern,      # @UnresolvedImport
     _objref_RWuLongLong    # @UnresolvedImport
     )
-import logging
+from mock import (create_autospec, MagicMock)
+from Acspy.Common.Log import logging
 
 __version__ = "$Id$"
 
@@ -69,17 +70,25 @@ class BaseArchCBTest(unittest.TestCase):
         self.backend_buffer = Buffer()
 
         logging.basicConfig()
-        logging.getLogger("test_logger").setLevel(logging.WARNING)
-        self.dummy_logger = logging.getLogger("test_logger")
+        """
+        Note that we need to mock the ACS logger if we want to run the test
+        with ACS down. This is because (i) the ACS logger and the Python Logger
+        are not compatible; (ii) the ACS logger, if created, blocks the main
+        process if ACS is not up!
+        """
+        self.dummy_logger = create_autospec(logging.Logger)("TestLogger")
+        self.dummy_logger.logDebug = MagicMock()
 
     def test_init(self):
 
-        cb = BaseArchCB(self.my_property, self.backend_buffer)
+        cb = BaseArchCB(self.my_property, self.backend_buffer,
+                        self.dummy_logger)
         cb._logger = self.dummy_logger
         self.assertEqual('INIT', cb.status)
 
     def test_working(self):
-        cb = BaseArchCB(self.my_property, self.backend_buffer)
+        cb = BaseArchCB(self.my_property, self.backend_buffer,
+                        self.dummy_logger)
         cb._logger = self.dummy_logger
         value = 1
         completion = Completion(1, 0, 0, [])
@@ -88,7 +97,8 @@ class BaseArchCBTest(unittest.TestCase):
         self.assertEqual('WORKING', cb.status)
 
     def test_done(self):
-        cb = BaseArchCB(self.my_property, self.backend_buffer)
+        cb = BaseArchCB(self.my_property, self.backend_buffer,
+                        self.dummy_logger)
         cb._logger = self.dummy_logger
         value = 1
         completion = Completion(1, 0, 0, [])
@@ -97,7 +107,8 @@ class BaseArchCBTest(unittest.TestCase):
         self.assertEqual('DONE', cb.status)
 
     def test_last(self):
-        cb = BaseArchCB(self.my_property, self.backend_buffer)
+        cb = BaseArchCB(self.my_property, self.backend_buffer,
+                        self.dummy_logger)
         cb._logger = self.dummy_logger
         self.assertRaises(NotImplementedError, cb.last)
 
@@ -108,152 +119,186 @@ class CBFactoryTest(unittest.TestCase):
 
         self.backend_buffer = Buffer()
 
+        logging.basicConfig()
+        self.dummy_logger = logging.Logger("test_logger")
+        self.dummy_logger.setLevel(logging.WARNING)
+
     def test_get_callback(self):
         # RObool seems to be an ACS mistake, ROboolean should be used instead
-        prop = _objref_ROBool()
+        prop = _objref_ROBool(None)
         self.assertRaises(
             UnsupporterPropertyTypeError,
             CBFactory.get_callback, prop, "",
-            self.backend_buffer)
+            self.backend_buffer, self.dummy_logger)
 
         # RObool seems to be an ACS mistake
-        prop = _objref_ROboolean
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROboolean(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBbool))
 
-        prop = _objref_RObooleanSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RObooleanSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBboolSeq))
 
-        prop = _objref_ROfloat()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROfloat(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBfloat))
 
-        prop = _objref_ROlongLong()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROlongLong(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBlongLong))
 
-        prop = _objref_ROstring()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROstring(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBstring))
 
-        prop = _objref_ROuLongLong()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROuLongLong(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBuLongLong))
 
-        prop = _objref_ROOnOffSwitch()
+        prop = _objref_ROOnOffSwitch(None)
         self.assertRaises(
             UnsupporterPropertyTypeError,
             CBFactory.get_callback,
-            prop, "", self.backend_buffer)
+            prop, "", self.backend_buffer, self.dummy_logger)
 
-        prop = _objref_ROdouble()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROdouble(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBdouble))
 
-        prop = _objref_ROfloatSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROfloatSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBfloatSeq))
 
-        prop = _objref_ROlongSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROlongSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBlongSeq))
 
-        prop = _objref_ROstringSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROstringSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBstringSeq))
 
-        prop = _objref_ROuLongSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROuLongSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBuLongSeq))
 
-        prop = _objref_ROboolean()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROboolean(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBbool))
 
-        prop = _objref_ROdoubleSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROdoubleSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBdoubleSeq))
 
-        prop = _objref_ROlong()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROlong(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBlong))
 
-        prop = _objref_ROpattern()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROpattern(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBpatternValueRep))
 
-        prop = _objref_ROuLong()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_ROuLong(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBuLong))
 
-        prop = _objref_RWBool()
+        prop = _objref_RWBool(None)
         self.assertRaises(
             UnsupporterPropertyTypeError,
             CBFactory.get_callback,
             prop, "",
-            self.backend_buffer)
+            self.backend_buffer, self.dummy_logger)
 
-        prop = _objref_RWbooleanSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWbooleanSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBboolSeq))
 
-        prop = _objref_RWfloat()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWfloat(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBfloat))
 
-        prop = _objref_RWlongLong()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWlongLong(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBlongLong))
 
-        prop = _objref_RWstring()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWstring(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBstring))
 
-        prop = _objref_RWuLongSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWuLongSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBuLongSeq))
 
-        prop = _objref_RWOnOffSwitch()
+        prop = _objref_RWOnOffSwitch(None)
         self.assertRaises(
             UnsupporterPropertyTypeError,
             CBFactory.get_callback, prop, "",
-            self.backend_buffer)
+            self.backend_buffer, self.dummy_logger)
 
-        prop = _objref_RWdouble()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWdouble(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBdouble))
 
-        prop = _objref_RWfloatSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWfloatSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBfloatSeq))
 
-        prop = _objref_RWlongSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWlongSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBlongSeq))
 
-        prop = _objref_RWuLong()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWuLong(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBuLong))
 
-        prop = _objref_RWboolean()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWboolean(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBbool))
 
-        prop = _objref_RWdoubleSeq()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWdoubleSeq(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBdoubleSeq))
 
-        prop = _objref_RWlong()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWlong(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBlong))
 
-        prop = _objref_RWpattern()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWpattern(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBpatternValueRep))
 
-        prop = _objref_RWuLongLong()
-        cb = CBFactory.get_callback(prop, "", self.backend_buffer)
+        prop = _objref_RWuLongLong(None)
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBuLongLong))
 
 

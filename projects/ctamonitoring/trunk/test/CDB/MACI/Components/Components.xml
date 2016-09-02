@@ -18,5 +18,7 @@
          Code="ctamonitoring.property_recorder.ComponentRecorder"
          Type="IDL:cta/actl/PropertyRecorder:1.0"
          Container="pyContainer"  ImplLang="py" />
+         
+      
 
 </Components>

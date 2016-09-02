@@ -122,7 +122,7 @@ class BaseArchCB:
         # It can be reproduced by the Objex monitors, so has nothing
         # to do with Python. Values seems to be OK.
         # I assume here that completion 0 or 1 is OK
-        if completion.type is (0 or 1):
+        if int(completion.type) > 1:
             self._logger.logWarning(
                 'Property: ' + self.property_name + ' completion type: ' +
                 ' type: ' + str(completion.type) +
@@ -169,7 +169,7 @@ class BaseArchCB:
             ' type: ' + str(completion.type) +
             ' code: ' + str(completion.code))
 
-        if completion.type != 0:
+        if int(completion.type) > 1:
             self._logger.logWarning(
                 'Property: ' + self.property_name +
                 ' completion type: ' +
@@ -420,7 +420,7 @@ class ArchCBpatternStringRep(
                                   ' type: ' + str(completion.type) +
                                   ' code: ' + str(completion.code))
 
-            if completion.type != 0:
+            if int(completion.type) > 1:
                 self._logger.logWarning(
                     'Property: ' + self.name + ' completion type: ' +
                     ' type: ' + str(completion.type) +
@@ -461,7 +461,7 @@ class ArchCBpatternStringRep(
                                   ' type: ' + str(completion.type) +
                                   ' code: ' + str(completion.code))
 
-            if completion.type != 0:
+            if int(completion.type) > 1:
                 self._logger.logWarning(
                     'Property: ' + self.name + ' completion type: ' +
                     ' type: ' + str(completion.type) +

@@ -417,7 +417,7 @@ class FrontEnd(object):
         returns the list of monitors
 
         Keyword arguments:
-        component_reference  -- corba reference of the conponent
+        component_reference  -- corba reference of the component
 
         Returns monitorList with all the monitors created,
         or None if not possible
@@ -480,6 +480,7 @@ class FrontEnd(object):
         else:
             chars = component.find_characteristic("*")
             for count in range(0, len(chars)):
+                #FIXME The line below can raise one OBJ_ADAPTER CORBA exception that should be catched 
                 myCharList = component_reference.get_characteristic_by_name(
                     str(chars[count])).value().split(',')
                 """
@@ -574,7 +575,18 @@ class FrontEnd(object):
         Raises:
         @raise UnsupporterPropertyTypeError: if property type is not supported
         '''
-
+        
+        #FIXME Add the following block to raise the correct exception or document it can happen:
+        '''
+        try: 
+            component_name = component_reference._get_name()
+        except OBJECT_NOT_EXIST:
+            import as from CORBA OBJECT_NOT_EXIST
+            Say Something
+            Raise adequete exception
+            Declare it in the righr place
+        '''
+        
         component_name = component_reference._get_name()
         component_type = component_reference._NP_RepositoryId
 
@@ -708,7 +720,6 @@ class FrontEnd(object):
             my_pro = my_pro_attr()  # this raises an attribute error
         except UNKNOWN:
             raise ValueError
-       
 
         return my_pro
 

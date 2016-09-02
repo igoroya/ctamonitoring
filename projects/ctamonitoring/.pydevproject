@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?eclipse-pydev version="1.0"?><pydev_project>
+<pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">Default</pydev_property>
+<pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.6</pydev_property>
+<pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
+<path>/${PROJECT_DIR_NAME}/trunk/src</path>
+</pydev_pathproperty>
+<pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
+<path>/Users/igoroya/ACS_libs_shared/ACS-12.0_libs/python</path>
+<path>/Users/igoroya/ACS_libs_shared/ACS-12.0_libs</path>
+<path>/Users/igoroya/ACS_libs_shared/ACS-12.0_libs/python/site-packages</path>
+<path>/Users/igoroya/ACS_libs_shared/ACS-12.0_libs/OmniOrb/python</path>
+<path>/Users/igoroya/ACS_libs_shared/ACS-12.0_libs/OmniOrb/python/site-packages</path>
+<path>/Users/igoroya/ACS_libs_shared/ACS-12.0_libs/OmniOrb/python/site-packages/omniORB</path>
+<path>/Users/igoroya/ACS_libs_shared/ACS-12.0_libs/python/site-packages/Pmw</path>
+</pydev_pathproperty>
+</pydev_project>
