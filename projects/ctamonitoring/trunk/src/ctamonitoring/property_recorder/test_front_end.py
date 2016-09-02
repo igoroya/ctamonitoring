@@ -24,7 +24,7 @@ from ctamonitoring.property_recorder.front_end import (
 from Acspy.Clients.SimpleClient import PySimpleClient
 from ctamonitoring.property_recorder.config import RecorderConfig
 
-import sys
+import sys, time
 from StringIO import StringIO
 
 
@@ -345,9 +345,6 @@ class RecorderSpaceObserverTest(unittest.TestCase):
         obs.dict_popitem('comp4', self.comp_4_info)
         self.assertEqual(obs.isFull, False)
 
-if __name__ == '__main__':
-    unittest.main()
-
 
 class FrontEndTest(unittest.TestCase):
 
@@ -359,9 +356,15 @@ class FrontEndTest(unittest.TestCase):
 
     def test_start_recording(self):
         self._front_end.start_recording()
-        #sleep?
+        self.assertTrue(self._front_end.is_recording)
+        #time.sleep(10)
         self._front_end.stop_recording()
-        
+
+if __name__ == '__main__':
+    unittest.main()
+
+
+
 
 #suite = unittest.TestLoader().loadTestsFromTestCase(RecorderConfigTest)
 # unittest.TextTestRunner(verbosity=2).run(suite)
