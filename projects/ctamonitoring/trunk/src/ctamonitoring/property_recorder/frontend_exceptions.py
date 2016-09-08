@@ -34,6 +34,29 @@ class ComponenNotFoundError(Exception):
         return retVal
 
 
+class CannotAddComponentException(Exception):
+    '''
+    Exception when a component cannot be added
+    '''
+    def __init__(self, component_id, msg=""):
+        '''
+        ctor.
+
+        @param component_id: The id of the component
+        @type component_id: string
+        @param msg: Additional information. Optional("").
+        @param msg: string
+        '''
+        self.component_id = component_id
+        self.msg = msg
+
+    def __str__(self):
+        retVal = "component, " + str(self.component_id) + " cannot be added"
+        if self.msg:
+            retVal += ": " + self.msg
+        return retVal
+
+
 class WrongComponenStateError(Exception):
     '''
     When a component entry is existing but with a wrong state

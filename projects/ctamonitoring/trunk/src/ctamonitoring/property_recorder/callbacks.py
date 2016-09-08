@@ -399,6 +399,11 @@ class ArchCBpatternStringRep(
         else:
             self._enumStates = None
 
+        #if logger is None:
+        #    logger = getLogger('ctamonitoring.property_recorder.callbacks')
+
+        #self._logger = logger
+
         BaseArchCB.__init__(self, name, backend_buffer,
                             logger)
 
@@ -652,5 +657,5 @@ class CBFactory():
             return (
                 ArchCBpatternValueRep(
                     prop_name,
-                    monitorBuffer)
+                    monitorBuffer, logger)
             )

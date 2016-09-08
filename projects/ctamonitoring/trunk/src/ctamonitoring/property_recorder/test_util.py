@@ -22,13 +22,16 @@ the module testacsproperties is used.
 '''
 
 import unittest
-from ctamonitoring.property_recorder.util import PropertyTypeUtil,\
-    ComponentUtil, AttributeDecoder, EnumUtil
+from ctamonitoring.property_recorder.util import (
+    PropertyTypeUtil, ComponentUtil, AttributeDecoder, EnumUtil)
+from ctamonitoring.property_recorder.frontend_exceptions import (
+    UnsupporterPropertyTypeError)
 from Acspy.Clients.SimpleClient import PySimpleClient
 import logging
 from ctamonitoring.property_recorder.backend import property_type
 from enum import Enum
 from ctamonitoring.property_recorder.constants import DECODE_METHOD
+
 
 PropertyType = property_type.PropertyType
 
@@ -217,7 +220,7 @@ class PropertyTypeUtilTest(unittest.TestCase):
             )
 
         self.assertRaises(
-            TypeError,
+            UnsupporterPropertyTypeError,
             PropertyTypeUtil.get_property_type,
             my_component._get_booleanSeqROProp()._NP_RepositoryId
             )
@@ -247,7 +250,7 @@ class PropertyTypeUtilTest(unittest.TestCase):
             )
 
         self.assertRaises(
-            TypeError,
+            UnsupporterPropertyTypeError,
             PropertyTypeUtil.get_property_type,
             my_component._get_booleanSeqRWProp()._NP_RepositoryId
             )

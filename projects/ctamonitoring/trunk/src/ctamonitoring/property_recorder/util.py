@@ -93,7 +93,7 @@ class PropertyTypeUtil():
         '''
         try:
             if PropertyTypeUtil._cbMap[rep_id] is None:
-                raise UnsupporterPropertyTypeError()
+                raise UnsupporterPropertyTypeError(rep_id)
             else:
                 return (
                     PropertyTypeUtil._cbMap[rep_id]

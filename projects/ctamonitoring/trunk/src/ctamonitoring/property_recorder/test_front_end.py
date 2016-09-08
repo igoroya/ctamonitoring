@@ -19,12 +19,15 @@ from ctamonitoring.property_recorder.front_end import (
     ComponentInfo,
     RecorderSpaceObserver,
     FrontEnd)
-
+from ctamonitoring.property_recorder.frontend_exceptions import (
+    CannotAddComponentException)
 
 from Acspy.Clients.SimpleClient import PySimpleClient
 from ctamonitoring.property_recorder.config import RecorderConfig
 
-import sys, time
+import sys
+import time
+import logging
 from StringIO import StringIO
 
 
@@ -77,8 +80,8 @@ class ComponentStoreTest(unittest.TestCase):
     def test_constructor_with_arguments(self):
         self.out.truncate(0)
         d = ComponentStore(self.one_dict, self.observer)
-        # When using arguments, the constructor needs to inform the observer that
-        # the dict was initialized
+        # When using arguments, the constructor needs to inform the observer
+        # that the dict was initialized
         output = self.out.getvalue().strip()
         expected_reaction = self.obs_dict_init + \
             ' (' + str(self.one_dict) + (',)')
@@ -347,24 +350,82 @@ class RecorderSpaceObserverTest(unittest.TestCase):
 
 
 class FrontEndTest(unittest.TestCase):
-
+    '''
+    This test requires ACS running with the testacsproperties CDB and
+    the myC cpp container up
+    '''
     def setUp(self):
-        self._my_acs_client = PySimpleClient()
-        self._front_end = FrontEnd(
+        self.__my_acs_client = PySimpleClient()
+        self.__my_acs_client.getLogger().setLevel(logging.CRITICAL)
+        self.__front_end = FrontEnd(
             RecorderConfig(),
-            self._my_acs_client)
+            self.__my_acs_client)
+        self.__my_component_id = "TEST_PROPERTIES_COMPONENT"
+
+    def test_is_acs_client_ok(self):
+        self.assertTrue(self.__front_end.is_acs_client_ok)
+
+    def test_update_acs_client(self):
+        other_client = PySimpleClient()
+        other_client.getLogger().setLevel(logging.CRITICAL)
+        self.__front_end.update_acs_client(other_client)
+        self.assertTrue(self.__front_end.is_acs_client_ok)
+        self.__front_end.start_recording()
+        yet_other_client = PySimpleClient()
+        yet_other_client.getLogger().setLevel(logging.CRITICAL)
+        self.__front_end.update_acs_client(yet_other_client)
+        self.__front_end.stop_recording()
 
     def test_start_recording(self):
-        self._front_end.start_recording()
-        self.assertTrue(self._front_end.is_recording)
-        #time.sleep(10)
-        self._front_end.stop_recording()
+        self.__front_end.start_recording()
+        self.assertTrue(self.__front_end.is_recording)
+        self.__front_end.stop_recording()
+
+        self.__my_acs_client.getComponent(
+            self.__my_component_id,
+            True)
+        self.__front_end.start_recording()
+        self.assertTrue(self.__front_end.is_recording)
+        self.__front_end.stop_recording()
+        self.__my_acs_client.releaseComponent(
+            self.__my_component_id)
+
+    def test_process_component(self):
+        self.__my_acs_client.getComponent(
+            self.__my_component_id,
+            True)
+
+        self.__front_end.process_component(
+            self.__my_component_id
+            )
+
+        self.__my_acs_client.releaseComponent(
+            self.__my_component_id)
+
+        self.assertRaises(
+            CannotAddComponentException,
+            self.__front_end.process_component,
+            "I_DO_NOT_EXIST"
+            )
+
+    def test_remove_wrong_components(self):
+        self.__my_acs_client.getComponent(
+            self.__my_component_id,
+            True)
+        self.__front_end.start_recording()
+
+        time.sleep(3)
+
+        self.__my_acs_client.releaseComponent(
+            self.__my_component_id)
+
+        time.sleep(10)
+
+        self.__front_end.stop_recording()
+
+    def tearDown(self):
+        self.__front_end.cancel()
+        self.__front_end = None
 
 if __name__ == '__main__':
     unittest.main()
-
-
-
-
-#suite = unittest.TestLoader().loadTestsFromTestCase(RecorderConfigTest)
-# unittest.TextTestRunner(verbosity=2).run(suite)

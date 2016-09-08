@@ -20,8 +20,10 @@ from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder.callbacks import CBFactory
 from ACS import CBDescIn  # @UnresolvedImport
 from ctamonitoring.property_recorder.frontend_exceptions import UnsupporterPropertyTypeError,\
-    ComponenNotFoundError, WrongComponenStateError, AcsIsDownError
-from CORBA import UNKNOWN  # @UnresolvedImport
+    ComponenNotFoundError, WrongComponenStateError, AcsIsDownError,\
+    CannotAddComponentException
+from CORBA import UNKNOWN, OBJECT_NOT_EXIST, OBJ_ADAPTER# @UnresolvedImport
+from maciErrTypeImpl import CannotGetComponentExImpl
 
 PropertyType = property_type.PropertyType
 
@@ -76,11 +78,15 @@ class FrontEnd(object):
     def __init__(self, recorder_config, acs_client,
                  recorder_component_name=None):
         '''
-        recorder_config -- the setup parameters for the recorder
-        acs_client      -- the instance of the ACS client, or component where
-                           the recorder is hosted, that provides access to
-                           the ACS world
+        @param recorder_config: the setup parameters for the recorder
+        @type recorder_config: ctamonitoring.property_recorder.RecorderConfig
 
+        @param acs_client: the instance of the ACS client, or component where
+                        the recorder is hosted, that provides access to
+                        the ACS world
+        @type acs_client: Acspy.Servants.ContainerServices.ContainerServices
+        @param recorder_component_name: the name of the component hosting the
+        @type recorder_component_name: str
         @ivar is_acs_client_ok: status of the ACS client
         @type is_acs_client_ok: bool
         '''
@@ -129,6 +135,8 @@ class FrontEnd(object):
     def cancel(self):
         """
         Stops the check thread, releases the components and closes the registry
+
+        The recorder will not be functional after calling this.
         """
         if not self._canceled:
 
@@ -186,7 +194,7 @@ class FrontEnd(object):
             self._component_whatchdog.start()
 
     def _create_component_whatchdog(self):
-        return ComponentWhatchdog(self)
+        return ComponentWatchdog(self)
 
     def _remove_wrong_components(self):
         """
@@ -294,7 +302,10 @@ class FrontEnd(object):
             # If working in INCLUDE mode and it is in the include list, add it
             if self.recorder_config.is_include_mode:
                 if component_id in self.recorder_config.components:
-                    self.process_component(component_id)
+                    try:
+                        self.process_component(component_id)
+                    except CannotAddComponentException:
+                        self.logger.exception("")
                 else:
                     self.logger.logDebug(
                         'The component '
@@ -304,7 +315,10 @@ class FrontEnd(object):
             # If working in EXCLUDE mode and it is NOT in the list, add it
             if not self.recorder_config.is_include_mode:
                 if component_id not in self.recorder_config.components:
-                    self.process_component(component_id)
+                    try:
+                        self.process_component(component_id)
+                    except CannotAddComponentException:
+                        self.logger.exception("")
                 else:
                     self.logger.logDebug(
                         'The component ' +
@@ -315,15 +329,16 @@ class FrontEnd(object):
 
     def process_component(self, component_id):
         """
-        Verify a component in the recorder
-        If it is not contained, insert it.
+        Try to insert a component in the recorder
+        If it is not yet inserted, and it is OK insert it.
         The component will be inserted regardless if it is in the
-        exclude/include list, or not
+        exclude/include list.
 
-        Keyword arguments:
-        component_id     -- string with the component ID
+        @param component_id: the name of the component to insert
+        @type component_id: str
 
-        returns True or False if it managed to insert or not the component
+        @raise CannotAddComponentException: if the component cannot be
+        added by unexpected reasons
         """
 
         self.logger.logDebug("called...")
@@ -331,28 +346,13 @@ class FrontEnd(object):
         self.logger.logDebug("take lock")
         self.__lock.acquire()
 
-        result = False
-
         try:
 
-            if component_id in self._componentsMap:
-                self.logger.logDebug(
-                    "the component " + component_id +
-                    " is already registered")
-                return
-
             if self._can_be_added(component_id):
-                try:
                     # get no sticky so we do not
                     # prevent them of being deactivated
-                    component = self.acs_client.getComponentNonSticky(
-                        component_id)
-                except Exception:
-                    self.logger.exception(
-                        "could not get a reference to the component "
-                        + str(component_id))
-                    return
-                # skip other property recorders
+                component = self.acs_client.getComponentNonSticky(
+                    component_id)
                 if(ComponentUtil.is_a_property_recorder_component(component)):
                     self.logger.logDebug("skipping other property recorders")
                     return
@@ -367,29 +367,29 @@ class FrontEnd(object):
                 self.logger.logDebug(
                     "Component " + component_id + " was added")
 
-                result = True
-
             else:
                 self.logger.logDebug(
                     "Component " + component_id + " cannot be added")
-                return
+
+        except CannotGetComponentExImpl:
+            raise CannotAddComponentException(component_id)
 
         except Exception:
-                    self.logger.exception(
-                        str(component_id)
-                        + " could not be added ")
+            raise CannotAddComponentException(component_id)
 
         finally:
             self.logger.logDebug("release lock")
             self.__lock.release()
-            return result
 
     def _can_be_added(self, component_id):
         """
         Checks if the component can be stored
 
-        Keyword arguments:
-        componentId     -- string with the component ID
+        @param component_id: the name of the component to check
+        @type component_id: str
+
+        @return: True if can be stored, False if not
+        @rtype: bool
 
         returns True if can be stored, False if not
         """
@@ -416,11 +416,10 @@ class FrontEnd(object):
         It then forwards this to the backend and
         returns the list of monitors
 
-        Keyword arguments:
-        component_reference  -- corba reference of the component
-
-        Returns monitorList with all the monitors created,
-        or None if not possible
+        @param component_reference: CORBA reference of the component
+        @type component_reference: CORBA reference
+        @return list with all the monitors created
+        @rtype: list
         """
 
         # TODO Can raise exception, document it
@@ -469,20 +468,26 @@ class FrontEnd(object):
                 property_attributes = (
                     PropertyAttributeHandler.get_prop_attribs_cdb_xml(
                         obj_char))
-
-                property_monitor = self._get_property_monitor(
-                    acs_property,
-                    property_attributes,
-                    component_reference)
+                try:
+                    property_monitor = self._get_property_monitor(
+                        acs_property,
+                        property_attributes,
+                        component_reference)
+                except (UnsupporterPropertyTypeError, OBJECT_NOT_EXIST):
+                    self.logger.exception("")
+                    property_monitor = None
                 if property_monitor is not None:
                     monitor_list.append(property_monitor)
 
         else:
             chars = component.find_characteristic("*")
             for count in range(0, len(chars)):
-                #FIXME The line below can raise one OBJ_ADAPTER CORBA exception that should be catched 
-                myCharList = component_reference.get_characteristic_by_name(
-                    str(chars[count])).value().split(',')
+                try:
+                    myCharList = component_reference.get_characteristic_by_name(
+                        str(chars[count])).value().split(',')
+                except OBJ_ADAPTER:
+                    self.logger.exception("problem getting characterisic")
+                    continue
                 """
                 As a way of discerning from a property to other type of
                 characteristic, I check for the length of the char list.
@@ -546,6 +551,7 @@ class FrontEnd(object):
         @return: the monitor of the property
         @raise UnsupporterPropertyTypeError:
         if the property type is not supported
+        @raise OBJECT_NOT_EXIST: if the property object does not exist
         '''
         #  This can raise a UnsupporterPropertyTypeError
         my_buffer = self._create_buffer(
@@ -571,22 +577,10 @@ class FrontEnd(object):
 
         @param acs_property: the ACS property
         @type acs_property: ACS._objref_<prop_type>
-
-        Raises:
         @raise UnsupporterPropertyTypeError: if property type is not supported
+        @raise OBJECT_NOT_EXIST: if the property object does not exist
         '''
-        
-        #FIXME Add the following block to raise the correct exception or document it can happen:
-        '''
-        try: 
-            component_name = component_reference._get_name()
-        except OBJECT_NOT_EXIST:
-            import as from CORBA OBJECT_NOT_EXIST
-            Say Something
-            Raise adequete exception
-            Declare it in the righr place
-        '''
-        
+
         component_name = component_reference._get_name()
         component_type = component_reference._NP_RepositoryId
 
@@ -699,15 +693,15 @@ class FrontEnd(object):
         Python ACS clients (in this case the recorder), in order to check
         if it is a property or not
 
-        Keyword arguments:
-            component -- acs characteristic component object
-            chars     -- characteristic to be evaluated
-        Returns:
-            Property  -- The property object
-        Raises:
-            AttributeError -- If the property could not be evaluated
-                              in the component
-            ValueError: if the property value/state is not OK
+        @param component: ACS characteristic component object
+        @type component: Acspy.Servants.CharacteristicComponent.CharacteristicComponent
+        @param chars: characteristic to be evaluated
+        @type chars: str
+        @return: The property object
+        @raise AttributeError:
+        If the property could not be evaluated in the component
+        @raise ValueError: if the property value/state is not OK
+
         """
         my_prop_str = '_get_' + chars
 
@@ -818,14 +812,19 @@ class FrontEnd(object):
         # for compName, compInfo in self.__componentsMap().iteritems():
         for compName in self._componentsMap.keys():
             self.logger.logDebug("deactivating component: " + compName)
-
-            self._release_component(compName)
+            try:
+                self._release_component(compName)
+            except OBJECT_NOT_EXIST:
+                self.logger.logDebug(
+                    "component: "
+                    + compName
+                    + " does not exist")
 
         # now empty the dictionary / map
         self._componentsMap.clear()
 
 
-class ComponentWhatchdog(threading.Thread):
+class ComponentWatchdog(threading.Thread):
 
         """
         Defining a thread to the check available components
