@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 __version__ = "$Id: test_util.py 1654 2015-12-22 11:07:42Z igoroya $"
 '''
 Unit test module for util
@@ -357,7 +358,8 @@ class ComponentUtilTest(unittest.TestCase):
             my_component2
             )
 
-        my_component3 = self._my_acs_client.getComponent("TEST_PROPERTIES_COMPONENT", True)
+        my_component3 = self._my_acs_client.getComponent(
+            "TEST_PROPERTIES_COMPONENT", True)
 
         self.assertFalse(
             ComponentUtil.is_python_char_component(my_component3)
@@ -375,14 +377,12 @@ class ComponentUtilTest(unittest.TestCase):
             ComponentUtil.is_a_property_recorder_component(my_component2)
             )
 
-    # TODO: Test if the component is a property recorder component
-    # --> Need to put adequate CDB
-
-
     def test_is_component_state_ok(self):
-        my_component = self._my_acs_client.getComponent("TEST_PROPERTIES_COMPONENT", True)
+        my_component = self._my_acs_client.getComponent(
+            "TEST_PROPERTIES_COMPONENT", True)
         self.assertTrue(
-            ComponentUtil.is_component_state_ok(my_component, "TEST_PROPERTIES_COMPONENT")
+            ComponentUtil.is_component_state_ok(
+                my_component, "TEST_PROPERTIES_COMPONENT")
             )
 
 
@@ -463,3 +463,15 @@ class EnumUtilTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(EnumUtilTest))
+    suite.addTest(unittest.makeSuite(AttributeDecoderTest))
+    suite.addTest(unittest.makeSuite(PropertyTypeUtilTest))
+    suite.addTest(unittest.makeSuite(ComponentUtilTest))
+    return suite
+
+if __name__ == "__main__":
+    unittest.main(defaultTest='suite')  # run all tests

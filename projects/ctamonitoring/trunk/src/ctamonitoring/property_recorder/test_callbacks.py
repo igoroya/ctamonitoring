@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 Unit test module for callbacks
 
@@ -304,3 +305,14 @@ class CBFactoryTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(BaseArchCBTest))
+    suite.addTest(unittest.makeSuite(CBFactoryTest))
+    return suite
+
+
+if __name__ == "__main__":
+    unittest.main(defaultTest='suite')  # run all tests

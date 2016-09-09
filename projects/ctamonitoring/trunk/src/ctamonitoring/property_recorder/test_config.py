@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 __version__ = "$Id$"
 '''
 Unit test module for config
@@ -353,8 +354,13 @@ class PropertyAttributeHandlerTest(unittest.TestCase):
         self.assertFalse(PropertyAttributeHandler._process_attribute(
             synomim_atribute, synonym_bad))
 
-if __name__ == '__main__':
-    unittest.main()
 
-# suite = unittest.TestLoader().loadTestsFromTestCase(RecorderConfigTest)
-# unittest.TextTestRunner(verbosity=2).run(suite)
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(RecorderConfigTest))
+    suite.addTest(unittest.makeSuite(PropertyAttributeHandlerTest))
+    return suite
+
+
+if __name__ == "__main__":
+    unittest.main(defaultTest='suite')  # run all tests

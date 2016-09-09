@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 __version__ = "$Id$"
 
 '''
@@ -213,5 +214,11 @@ class RecorderParserTest(unittest.TestCase):
         self.assertEqual(exit_exception.code, 2)
 
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(StandaloneRecorderTest))
+    suite.addTest(unittest.makeSuite(RecorderParserTest))
+    return suite
+
+if __name__ == "__main__":
+    unittest.main(defaultTest='suite')  # run all tests

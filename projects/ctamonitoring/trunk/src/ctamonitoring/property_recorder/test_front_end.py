@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 __version__ = "$Id$"
 
 
@@ -427,5 +428,13 @@ class FrontEndTest(unittest.TestCase):
         self.__front_end.cancel()
         self.__front_end = None
 
-if __name__ == '__main__':
-    unittest.main()
+
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(ComponentStoreTest))
+    suite.addTest(unittest.makeSuite(RecorderSpaceObserverTest))
+    suite.addTest(unittest.makeSuite(FrontEndTest))
+    return suite
+
+if __name__ == "__main__":
+    unittest.main(defaultTest='suite')  # run all tests
