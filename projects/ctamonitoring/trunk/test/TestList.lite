@@ -1,0 +1,8 @@
+SOURCE PropertyRecorderTatEnvironment
+PROLOGUE  PropertyRecorderTatPrologue
+test_config
+test_standalone_recorder
+test_callbacks
+test_front_end
+test_util
+EPILOGUE PropertyRecorderTatEpilogue

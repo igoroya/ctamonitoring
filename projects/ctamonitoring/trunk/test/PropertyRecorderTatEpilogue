@@ -1,0 +1,9 @@
+#! /bin/bash
+# TAT unit test for the Property Recorded prologue
+# Author: Igor Oya
+# mail: igor.oya.vallejo@desy.de
+
+
+echo " ******************  PropertyRecorderTATEpilogue ************* "
+acsutilTATEpilogue
+acscontainerdaemonStop

@@ -1,0 +1,8 @@
+In urder to run the TAT unit test just issue "tat"
+The tests to poerform can be selected at Test.lite.
+
+Tests 1 and 2 are ACS only tests
+Tests 3 and 4 require the simulation opc ua server for the CCD camera available
+Tests 5 and 6 require a real CCD camera available
+
+By default only 1 and 2 are uncommented
