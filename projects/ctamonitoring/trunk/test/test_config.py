@@ -32,7 +32,7 @@ __version__ = '$Id$'
 
 class Defaults:
     '''
-    Defauls values for the unir test
+    Defauls values for the unit test
     '''
     default_timer_trigger = 60.0
     max_comps = 100

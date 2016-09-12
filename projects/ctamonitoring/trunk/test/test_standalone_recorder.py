@@ -14,7 +14,6 @@ Unit test module for test_config
 @requires: logging
 @requires: ctamonitoring.property_recorder.config
 @requires: ctamonitoring.property_recorder.standalone_recorder
-@requires: ctamonitoring.property_recorder.test_config
 @requires: contextlib
 @requires: StringIO
 @requires: sys
@@ -29,7 +28,6 @@ from ctamonitoring.property_recorder.config import (
 from ctamonitoring.property_recorder.standalone_recorder import (
     RecorderParser, StandaloneRecorder)
 from ctamonitoring.property_recorder.front_end import FrontEnd
-from ctamonitoring.property_recorder.test_config import Defaults
 from Acspy.Clients.SimpleClient import PySimpleClient
 from contextlib import contextmanager
 from StringIO import StringIO
@@ -52,6 +50,20 @@ def capture_sys_output():
         yield capture_out, capture_err
     finally:
         sys.stdout, sys.stderr = current_out, current_err
+
+
+class Defaults:
+    '''
+    Defauls values for the unit test
+    '''
+    default_timer_trigger = 60.0
+    max_comps = 100
+    max_props = 1000
+    checking_period = 10  # seconds
+    backend_type = BACKEND_TYPE.DUMMY
+    components = set()
+    backend_config = None
+    is_include_mode = False
 
 
 class MockedStandaloneRecorder(StandaloneRecorder):
