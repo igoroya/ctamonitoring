@@ -5,5 +5,7 @@
 
 
 echo " ******************  PropertyRecorderTATEpilogue ************* "
+export ACS_CDB=$PWD/test_util
+export ACS_TMP=$PWD/tmp
 acsutilTATEpilogue
 acscontainerdaemonStop
