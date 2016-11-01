@@ -385,9 +385,9 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
         # we actually don't care too much here what parameters are given
         # however, component name and property name are the main characteristics
         # to identify a property so we will check these
-        self._check_name(component_name, "component_name")
+	self._check_name(component_name, "component_name")
         self._check_name(property_name, "property_name")
-        property_desc = {"component_name" : component_name,
+	property_desc = {"component_name" : component_name,
                          "component_type" : component_type,
                          "property_name" : property_name,
                          "property_type" : str(property_type),
@@ -396,13 +396,14 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
                          "chunk_size" : (self._chunk_size.days * 86400. +
                                          self._chunk_size.seconds +
                                          self._chunk_size.microseconds * 1e-6)}
+	# FIXME: There is some sort of bug below: if MondoBD process is off, it hangs (no exception)
         tmp = self._properties.find_and_modify(query=property_desc,
                                                update=property_desc,
                                                upsert=True, new=True)
-        property_id = tmp["_id"]
+	property_id = tmp["_id"]
         log_id = self._get_log_id(component_name, property_name,
                                   property_id, disable, force)
-        return Buffer(self._log, self._fifo, self._chunk_size,
+	return Buffer(self._log, self._fifo, self._chunk_size,
                       property_id, log_id, self._logs,
                       component_name, property_name,
                       disable)
