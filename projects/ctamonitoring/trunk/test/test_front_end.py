@@ -226,19 +226,19 @@ class ComponentStoreTest(unittest.TestCase):
 class RecorderSpaceObserverTest(unittest.TestCase):
 
     comp_1_info = ComponentInfo(
-        'component1_ref', [
+        'component1_ref', 1, [
             'monitor1', 'monitor2', 'monitor3'])
     comp_2_info = ComponentInfo(
-        'component2_ref', [
+        'component2_ref', 1, [
             'monitor1', 'monito2', 'monitor3'])
     comp_3_info = ComponentInfo(
-        'component3_ref', [
+        'component3_ref', 1, [
             'monitor1', 'monito2', 'monitor3'])
     comp_4_info = ComponentInfo(
-        'component4_ref', [
+        'component4_ref', 1, [
             'monitor1', 'monito2', 'monitor3'])
     comp_3_info_new = ComponentInfo(
-        'component3_ref', [
+        'component3_ref', 1, [
             'monitor1', 'monito2', 'monitor3', 'monito4', 'monitor5'])
 
     dict_3_element = {

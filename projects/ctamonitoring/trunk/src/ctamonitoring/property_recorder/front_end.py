@@ -30,10 +30,12 @@ PropertyType = property_type.PropertyType
 ComponentInfo = collections.namedtuple(
     'componentInfo',
     ['compReference',
+     'managerId',
      'monitors'],
     verbose=False)
 '''
 compReference -- the CORBA reference to the component
+managerId     -- ID as registered in the ACS manager
 monitors      -- list with the monitor objects associated to the component
 '''
 
@@ -234,8 +236,18 @@ class FrontEnd(object):
                     self.logger.exception(
                         "the component " + compName +
                         " is in a unexpected state, ")
-
                     self._componentsMap.pop(compName)
+		else: 
+		     if long(compInfo.managerId) != long(self.acs_client.availableComponents(compName)[0].h):
+                     	self.logger.logDebug(
+				"the component "
+                        	+ compName
+				+ " with Manager ID: "
+				+ str(self.acs_client.availableComponents(compName)[0].h)
+                        	+ " has a different ID from what it had before: "
+				+ str(compInfo.managerId)
+				+", taking it out")
+                    	self._componentsMap.pop(compName)
 
             length -= len(self._componentsMap)
 
@@ -356,13 +368,17 @@ class FrontEnd(object):
                 if(ComponentUtil.is_a_property_recorder_component(component)):
                     self.logger.logDebug("skipping other property recorders")
                     return
-
+	 	
+	
+		manager_id = self.acs_client.availableComponents(component_id)[0].h
+		
                 comp_info = ComponentInfo(
                     component,
+		    manager_id,
                     self._get_component_characteristics(component)
                     )
 
-                self._componentsMap[component_id] = comp_info
+		self._componentsMap[component_id] = comp_info
 
                 self.logger.logDebug(
                     "Component " + component_id + " was added")
@@ -433,7 +449,8 @@ class FrontEnd(object):
 
         try:
             is_python = ComponentUtil.is_python_char_component(component)
-            self.logger.logDebug(
+            if is_python: 
+	       self.logger.logDebug(
                 'Python component found')
         except AttributeError:
             return monitor_list
@@ -607,6 +624,7 @@ class FrontEnd(object):
                             "Enum states do not make sense,"
                             "use the int representation")
 
+	# FIXME: There is some sort of bug below in the backend: if MondoBD is off, it hangs
         try:
             my_buffer = self._registry.register(
                 component_name=component_name,
@@ -627,6 +645,12 @@ class FrontEnd(object):
                 disable=False,
                 force=True,
                 **property_attributes)
+	except ValueError:
+	    self.logger.logWarning("++bla++")
+	    self.logger.exception("")   
+		
+		
+
 
         self.logger.logDebug(
             "Create property with attributes: " +
