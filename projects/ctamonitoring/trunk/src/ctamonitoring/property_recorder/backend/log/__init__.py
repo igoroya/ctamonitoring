@@ -1,7 +1,7 @@
 __version__ = "$Id$"
 
 
-'''
+"""
 The log backend writes any monitoring data to the log.
 
 @author: tschmidt
@@ -10,4 +10,4 @@ The log backend writes any monitoring data to the log.
 @version: $Id$
 @change: $LastChangedDate$
 @change: $LastChangedBy$
-'''
+"""

@@ -1,7 +1,7 @@
 __version__ = "$Id$"
 
 
-'''
+"""
 The dummy backend does nothing/is a facade only.
 
 Nice tool to test the property recorder though.
@@ -12,4 +12,4 @@ Nice tool to test the property recorder though.
 @version: $Id$
 @change: $LastChangedDate$
 @change: $LastChangedBy$
-'''
+"""
