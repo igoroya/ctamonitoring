@@ -18,8 +18,23 @@ Little helpers that a backend might find useful...
 
 from datetime import datetime
 from datetime import timedelta
+from ctamonitoring.property_recorder.backend.property_type import PropertyType
 try:
     from Acspy.Common.TimeHelper import TimeUtil
+
+    def to_posixtime(tm):
+        """
+        Convert an ACS epoch to a POSIX timestamp...
+
+        ...such as is returned by time.time().
+
+        @param tm: A time in 100 nanoseconds that have passed since
+        October 15, 1582.
+        @type tm: acstime.Epoch
+        @return: The POSIX timestamp.
+        @rtype: float
+        """
+        return TimeUtil().epoch2py(tm)
 
     def to_datetime(tm):
         """
@@ -27,18 +42,35 @@ try:
 
         @param tm: A time in 100 nanoseconds that have passed since
         October 15, 1582.
-        @type tm: long or acstime.Epoch
+        @type tm: acstime.Epoch
         @return: Date + time.
         @rtype: datetime.datetime
         """
-        return datetime.utcfromtimestamp(TimeUtil().epoch2py(tm))
+        return datetime.utcfromtimestamp(to_posixtime(tm))
 except ImportError:
     # assume time information is a POSIX timestamp, such as is returned
     # by time.time(), or a datetime.datetime if this doesn't run in an
     # ACS system
+    def to_posixtime(tm):
+        """
+        Convert a date + time to a POSIX timestamp...
+
+        ...or keep it a POSIX timestamp eventually.
+
+        @param tm: A time in seconds that have passed since January 1, 1970.
+        @type tm: integer or floating point number or datetime.datetime
+        @return: Date + time.
+        @rtype: datetime.datetime
+        """
+        if isinstance(tm, datetime):
+            return get_total_seconds(tm - datetime.utcfromtimestamp(0), False)
+        return tm
+
     def to_datetime(tm):
         """
-        Convert POSIX timestamp to a date + time or keep it a date + time eventually.
+        Convert a POSIX timestamp to a date + time...
+
+        ...or keep it a date + time eventually.
 
         @param tm: A time in seconds that have passed since January 1, 1970.
         @type tm: integer or floating point number or datetime.datetime
@@ -50,26 +82,36 @@ except ImportError:
         return tm
 
 
-def get_total_seconds(td):
+def get_total_seconds(td, ignore_fractions_of_seconds=False):
     """
     Get the total number of seconds contained in a time duration.
 
     @param td: The time duration.
     @type td: datetime.timedelta
-    @return: The number seconds in td.
-    @rtype: long
+    @param ignore_fractions_of_seconds: Return the number of seconds
+    without its fractions or not. Optional, default is False.
+    @type ignore_fractions_of_seconds: boolean
+    @return: The number of seconds in td.
+    @rtype: long or float
     @note: For very large time durations this method may loose accuracy.
     """
     try:
-        return td.total_seconds()
+        if ignore_fractions_of_seconds:
+            return long(td.total_seconds())
+        else:
+            return td.total_seconds()
     except AttributeError:
         pass
 
-    return (td.microseconds + (td.seconds +
-                               td.days*24L*3600L) * 10**6L) / 10**6L
+    if ignore_fractions_of_seconds:
+        microseconds = td.microseconds
+    else:
+        microseconds = float(td.microseconds)
+    return (microseconds + (td.seconds +
+                            td.days*24L*3600L) * 10**6L) / 10**6L
 
 
-def get_floor(tm, td):
+def get_floor(tm, td, ignore_fractions_of_seconds=True):
     """
     Get the floor is computed and the remainder (if any) is thrown away.
 
@@ -77,16 +119,18 @@ def get_floor(tm, td):
     @type tm: datetime.datetime
     @param td: A time duration that defines the time grid.
     @type td: datetime.timedelta
+    @param ignore_fractions_of_seconds: Ignore fractions of seconds or not.
+    Optional, default is True.
+    @type ignore_fractions_of_seconds: boolean
     @return: The floor of tm.
     @rtype: datetime.datetime
     """
+    flag = ignore_fractions_of_seconds
+    duration = get_total_seconds(td, flag)
     tmp = tm - datetime.min
-    tmp = timedelta(seconds=(get_total_seconds(tmp) //
-                             get_total_seconds(td)) * get_total_seconds(td))
+    tmp = timedelta(seconds=(get_total_seconds(tmp, flag) //
+                             duration) * duration)
     return datetime.min + tmp
-
-
-from ctamonitoring.property_recorder.backend.property_type import PropertyType
 
 
 def to_string(dt, property_type, property_type_desc=None):
@@ -142,9 +186,11 @@ def get_enum_desc_key_type(property_type_desc):
         raise ValueError("enum description has no entries")
     return retVal
 
+
 def get_enum_inverted_desc(property_type_desc):
     """
     Get an enum's inverted property type description.
+
     The property type description usually is a dictionary that maps
     enum tags to enum integer value. The inverted one maps integers to tags.
 
