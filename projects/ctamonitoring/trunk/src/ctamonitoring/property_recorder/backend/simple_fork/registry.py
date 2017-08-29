@@ -1,4 +1,4 @@
-__version__ = "$Id: registry.py 600 2013-09-24 20:53:25Z tschmidt $"
+__version__ = "$Id$"
 
 
 """
@@ -7,9 +7,9 @@ The simple fork registry and buffer.
 @author: tschmidt
 @organization: DESY Zeuthen
 @copyright: cta-observatory.org
-@version: $Id: registry.py 600 2013-09-24 20:53:25Z tschmidt $
-@change: $LastChangedDate: 2013-09-24 22:53:25 +0200 (Di, 24 Sep 2013) $
-@change: $LastChangedBy: tschmidt $
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
 @requires: ctamonitoring.property_recorder.backend
 @requires: ctamonitoring.property_recorder.backend.dummy.registry
 @requires: Acspy.Common.Log or logging
@@ -69,12 +69,12 @@ class Buffer(ctamonitoring.property_recorder.backend.dummy.registry.Buffer):
             try:
                 buffer.add(tm, dt)
             except:
-                self._log.exception("cannot add %s/%s at %s" %
+                self._log.exception("cannot add %s/%s to %s" %
                                     (self._component_name,
                                      self._property_name, id))
                 err += 1
         if err and (self._strict or err >= len(self._buffers)):
-            raise RuntimeError("cannot add %s/%s at %d buffers" %
+            raise RuntimeError("cannot add %s/%s to %d buffers" %
                                (self._component_name,
                                 self._property_name, err))
 
@@ -146,11 +146,18 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
         if not self._log:
             self._log = getLogger(defaultname)
         self._log.debug("creating a simple fork registry")
+        self._strict = strict
         self._registries = []
         for backend_name, backend_config in backends:
-            r = get_registry_class(backend_name)
-            self._registries.append((backend_name, r(**backend_config)))
-        self._strict = strict
+            self._log.info("create registry %s" % (backend_name,))
+            try:
+                r = get_registry_class(backend_name)
+                self._registries.append((backend_name, r(**backend_config)))
+            except:
+                self._log.exception("cannot create registry %s" %
+                                    (backend_name,))
+                del self._registries
+                raise
 
     def register(self,
                  component_name, component_type,
@@ -170,14 +177,14 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
                                            disable, force, *args, **meta)))
             except:
                 self._log.exception("cannot register %s/%s at %s" %
-                                    (component_type, component_name, id))
+                                    (component_name, property_name, id))
                 for id, buffer in buffers:
                     try:
                         buffer.close()
                     except:
                         self._log.exception("cannot close buffer")
                 raise RuntimeError("cannot register %s/%s at %s" %
-                                   (component_type, component_name, id))
+                                   (component_name, property_name, id))
 
         return Buffer(self._log, self._strict, buffers,
                       component_name, property_name)

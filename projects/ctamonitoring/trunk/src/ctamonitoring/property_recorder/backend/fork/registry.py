@@ -1,4 +1,4 @@
-__version__ = "$Id: registry.py 600 2013-09-24 20:53:25Z tschmidt $"
+__version__ = "$Id$"
 
 
 """
@@ -7,9 +7,9 @@ The fork registry and buffer.
 @author: tschmidt
 @organization: DESY Zeuthen
 @copyright: cta-observatory.org
-@version: $Id: registry.py 600 2013-09-24 20:53:25Z tschmidt $
-@change: $LastChangedDate: 2013-09-24 22:53:25 +0200 (Di, 24 Sep 2013) $
-@change: $LastChangedBy: tschmidt $
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
 @requires: ctamonitoring.property_recorder.backend
 @requires: ctamonitoring.property_recorder.backend.dummy.registry
 @requires: ctamonitoring.property_recorder.backend.exceptions
@@ -27,6 +27,7 @@ from ctamonitoring.property_recorder.backend.ring_buffer import RingBuffer
 from ctamonitoring.property_recorder.backend.simple_fork \
     import __name__ as defaultname
 from threading import Event
+from threading import Lock
 from threading import Thread
 
 try:
@@ -96,9 +97,10 @@ class Buffer(ctamonitoring.property_recorder.backend.dummy.registry.Buffer):
         @see ctamonitoring.property_recorder.backend.dummy.registry.Buffer.add()
         """
         err = 0
-        for id, buffer in self._buffers:
+        for id, lock, buffer in self._buffers:
             try:
-                buffer.add(tm, dt)
+                with lock:
+                    buffer.add(tm, dt)
             except:
                 self._log.exception("cannot add %s/%s at %s" %
                                     (self._component_name,
@@ -119,9 +121,10 @@ class Buffer(ctamonitoring.property_recorder.backend.dummy.registry.Buffer):
             self._fifo.flush(current=True)
 
             err = 0
-            for id, buffer in self._buffers:
+            for id, lock, buffer in self._buffers:
                 try:
-                    buffer.flush()
+                    with lock:
+                        buffer.flush()
                 except:
                     self._log.exception("cannot flush %s/%s at %s" %
                                         (self._component_name,
@@ -144,9 +147,10 @@ class Buffer(ctamonitoring.property_recorder.backend.dummy.registry.Buffer):
             self.flush()
 
             err = 0
-            for id, buffer in self._buffers:
+            for id, lock, buffer in self._buffers:
                 try:
-                    buffer.close()
+                    with lock:
+                        buffer.close()
                 except:
                     self._log.exception("cannot close %s/%s at %s" %
                                         (self._component_name,
@@ -188,7 +192,8 @@ class _Worker(Thread):
         log.debug("creating fork worker")
         self._fifo = fifo
         self._log = log
-        self._timeout = 0.25
+        self._timeout = None
+        self._n = 1
         self._canceled = Event()
         self._canceled.clear()
         self._blah = 0
@@ -197,7 +202,7 @@ class _Worker(Thread):
         try:
             while not self._canceled.is_set():
                 try:
-                    items = self._fifo.get(n=1, timeout=self._timeout)
+                    items = self._fifo.get(n=self._n, timeout=self._timeout)
                 except InterruptedException:
                     self._log.info("request to cancel fork worker")
                     continue
@@ -269,22 +274,33 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
         if not self._log:
             self._log = getLogger(defaultname)
         self._log.debug("creating a fork registry")
-        self._registries = []
-        for backend_name, backend_config in backends:
-            r = get_registry_class(backend_name)
-            self._registries.append((backend_name, r(**backend_config)))
         self._strict = strict
+        self._registries = []
+        try:
+            for backend_name, backend_config in backends:
+                self._log.info("create registry %s" % (backend_name,))
+                try:
+                    r = get_registry_class(backend_name)
+                    self._registries.append((backend_name,
+                                             r(**backend_config)))
+                except:
+                    self._log.exception("cannot create registry %s" %
+                                        (backend_name,))
+                    raise
 
-        self._worker_is_daemon = worker_is_daemon
-        if n_workers <= 0:
-            n_workers = 1
-        self._fifo = RingBuffer(fifo_size)
-        self._workers = []  # keep this the last class member variable in ctor
-        for _ in range(n_workers):
-            worker = _Worker(self._fifo, self._log)
-            worker.daemon = worker_is_daemon
-            worker.start()
-            self._workers.append(worker)
+            self._worker_is_daemon = worker_is_daemon
+            if n_workers <= 0:
+                n_workers = 1
+            self._fifo = RingBuffer(fifo_size)
+            self._workers = []  # keep this the last member variable in ctor
+            for _ in range(n_workers):
+                worker = _Worker(self._fifo, self._log)
+                worker.daemon = worker_is_daemon
+                worker.start()
+                self._workers.append(worker)
+        except:
+            del self._registries
+            raise
 
     def register(self,
                  component_name, component_type,
@@ -298,21 +314,22 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
         for id, r in self._registries:
             try:
                 buffers.append((id,
+                                Lock(),
                                 r.register(component_name, component_type,
                                            property_name, property_type,
                                            property_type_desc,
                                            disable, force, *args, **meta)))
             except:
                 self._log.exception("cannot register %s/%s at %s" %
-                                    (component_type, component_name, id))
-                for id, buffer in buffers:
+                                    (component_name, property_name, id))
+                for id, lock, buffer in buffers:
                     try:
+                        # here we are still single threaded and ignore the lock
                         buffer.close()
                     except:
                         self._log.exception("cannot close buffer")
                 raise RuntimeError("cannot register %s/%s at %s" %
-                                   (component_type, component_name, id))
-
+                                   (component_name, property_name, id))
         return Buffer(self._log, self._fifo, self._strict, buffers,
                       component_name, property_name)
 
