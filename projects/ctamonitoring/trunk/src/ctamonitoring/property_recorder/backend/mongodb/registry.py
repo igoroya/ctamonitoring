@@ -34,6 +34,7 @@ from ctamonitoring.property_recorder.backend.exceptions \
 from ctamonitoring.property_recorder.backend.ring_buffer import RingBuffer
 from ctamonitoring.property_recorder.backend.util import to_datetime
 from ctamonitoring.property_recorder.backend.util import get_floor
+from ctamonitoring.property_recorder.backend.util import get_total_seconds
 from ctamonitoring.property_recorder.backend.mongodb \
     import __name__ as defaultname
 from datetime import datetime
@@ -166,7 +167,7 @@ class Buffer(ctamonitoring.property_recorder.backend.dummy.registry.Buffer):
         @param fifo: The FIFO that is the input for the mongodb consumer.
         @type fifo: ctamonitoring.property_recorder.backend.ring_buffer.RingBuffer
         @param chunk_size: Specifies the time duration within monitoring data
-        is safed into a chunk.
+        is safed into a chunk (fraction of seconds will be ignored).
         @type chunk_size: datetime.timedelta
         @param property_id: This is the ID that identifies the
         property/monitoring in the properties collection
@@ -217,7 +218,7 @@ class Buffer(ctamonitoring.property_recorder.backend.dummy.registry.Buffer):
                                (self._component_name, self._property_name))
         if not self._disable:
             t = to_datetime(tm)
-            bin_begin = get_floor(t, self._chunk_size)
+            bin_begin = get_floor(t, self._chunk_size, True)
             if self._bin_begin is not None and bin_begin != self._bin_begin:
                 if self._doc and self._doc["end"] is not None:
                     self._fifo.add(self._doc)
@@ -294,9 +295,7 @@ class _Worker(Thread):
         if chunk_size is None:
             self._timeout = None
         else:
-            self._timeout = (chunk_size.days * 86400. +
-                             chunk_size.seconds +
-                             chunk_size.microseconds * 1e-6) / 2
+            self._timeout = get_total_seconds(chunk_size, True) * 0.5
             # don't use timeouts less than 100ms
             if self._timeout < 0.1:
                 self._timeout = 0.1
@@ -385,7 +384,8 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
         @param uri: mongodb URI. Optional, default is "mongodb://localhost".
         @type uri: string
         @param chunk_size: Specifies the time duration within monitoring data
-        is safed into a chunk. Optional, default is 1 minute.
+        is safed into a chunk (fraction of seconds will be ignored).
+        Optional, default is 1 minute.
         The chunk size can be given as a timedelta or a 'number of seconds'.
         @type chunk_size: datetime.timedelta or int or float
         @param fifo_size: Sets the upperbound limit on the number of chunks
@@ -520,9 +520,8 @@ class Registry(ctamonitoring.property_recorder.backend.dummy.registry.Registry):
                          "property_type": str(property_type),
                          "property_type_desc": property_type_desc,
                          "meta": meta,
-                         "chunk_size": (self._chunk_size.days * 86400. +
-                                        self._chunk_size.seconds +
-                                        self._chunk_size.microseconds * 1e-6)}
+                         "chunk_size": get_total_seconds(self._chunk_size,
+                                                         True)}
         tmp = self._properties.find_one_and_replace(filter=property_desc,
                                                     replacement=property_desc,
                                                     upsert=True,
