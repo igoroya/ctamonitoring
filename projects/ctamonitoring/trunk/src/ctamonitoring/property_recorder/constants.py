@@ -67,7 +67,7 @@ ROONOFFSWITCH_NP_REP_ID = 'IDL:alma/ACS/ROOnOffSwitch:1.0'
 RWONOFFSWITCH_NP_REP_ID = 'IDL:alma/ACS/RWOnOffSwitch:1.0'
 
 
-DECODE_METHOD = Enum('NONE', 'AST_LITERAL', 'AST_LITERAL_HYBRID', 'UTF8')
+DECODE_METHOD = Enum('DECODE_METHOD', 'AST_LITERAL AST_LITERAL_HYBRID UTF8, NONE')
 '''
 Methods to decode the entry from the CDB. Depends on the type
 '''

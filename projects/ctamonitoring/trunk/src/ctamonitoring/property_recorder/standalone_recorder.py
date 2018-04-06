@@ -175,16 +175,16 @@ class ValidBackendAction(argparse.Action):
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         try:
-            assert values in BACKEND_TYPE
-        except AssertionError:
-            allowed = str(BACKEND_TYPE._keys)
+            backend_type = EnumUtil.from_string(BACKEND_TYPE, values)
+        except KeyError:
+            allowed = str([e.name for e in BACKEND_TYPE])
             parser.error(
                 "'%s' is not a valid backend type. Allowed values are: '%s'"
                 % (values, allowed))
 
         setattr(
             namespace, self.dest,
-            EnumUtil.from_string(BACKEND_TYPE, values)
+            backend_type
             )
 
 
@@ -277,8 +277,8 @@ class RecorderParser(object):
             action=ValidBackendAction,
             dest='backend_type',
             type=str,
-            help='The backends to be used, available one are '
-                 + str(BACKEND_TYPE._keys))
+            help='The backends to be used, available ones are '
+                 + str([e.name for e in BACKEND_TYPE]))
         argparser.add_argument(
             '--backend_config', action=ConfigBackendAction,
             dest='backend_config',

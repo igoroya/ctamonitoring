@@ -443,21 +443,21 @@ class AttributeDecoderTest(unittest.TestCase):
 class EnumUtilTest(unittest.TestCase):
 
     def test_to_string(self):
-        test_enum = Enum('DUMMY', 'LOG', 'MYSQL', 'MONGODB')
+        test_enum = Enum('test_enum', 'DUMMY LOG MYSQL MONGODB')
         self.assertEqual(
             'DUMMY',
             EnumUtil.to_string(test_enum.DUMMY)
             )
 
     def test_from_string(self):
-        test_enum = Enum('DUMMY', 'LOG', 'MYSQL', 'MONGODB')
+        test_enum = Enum('test_enum', 'DUMMY LOG MYSQL MONGODB')
         self.assertEqual(
             test_enum.LOG,
             EnumUtil.from_string(test_enum, 'LOG')
             )
 
         self.assertRaises(
-            ValueError,
+            KeyError,
             EnumUtil.from_string,
             test_enum, 'NOPE')
 

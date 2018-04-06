@@ -30,7 +30,7 @@ from ctamonitoring.property_recorder.util import AttributeDecoder
 from Acspy.Common.Log import getLogger
 
 
-BACKEND_TYPE = Enum('DUMMY', 'LOG', 'MYSQL', 'MONGODB')
+BACKEND_TYPE = Enum('BACKEND_TYPE', 'DUMMY LOG MYSQL MONGODB')
 
 
 BACKEND_REGISTRIES = {}
@@ -174,12 +174,10 @@ class RecorderConfig(object):
 
     @backend_type.setter
     def backend_type(self, backend_type):
-        try:
-            BACKEND_TYPE._values.index(backend_type)
-        except ValueError:
+        if backend_type not in BACKEND_TYPE:
             raise ValueError(
                 "Backend type not recognized. Supported types are " +
-                str(BACKEND_TYPE._keys))
+                str([e.name for e in BACKEND_TYPE]))
         self._backend_type = backend_type
 
     @property

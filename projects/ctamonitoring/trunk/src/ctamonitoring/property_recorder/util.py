@@ -354,13 +354,13 @@ class EnumUtil(object):
         '''
         To obtain the enum object from a string rep.
 
-        Raises ValueError if type/value not recognized
+        Raises KeyError if type/value not recognized
         '''
-        return enum_type._values[enum_type._keys.index(name)]
+        return enum_type[name]
 
     @staticmethod
     def to_string(enum_value):
         '''
         Converts the enum into a string
         '''
-        return enum_value.key
+        return str(enum_value.name)
