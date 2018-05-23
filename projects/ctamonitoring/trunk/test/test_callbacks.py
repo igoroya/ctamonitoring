@@ -17,11 +17,11 @@ from ctamonitoring.property_recorder.backend.dummy.registry import Buffer
 from ctamonitoring.property_recorder import callbacks
 from ctamonitoring.property_recorder.frontend_exceptions import (
     UnsupporterPropertyTypeError
-    )
+)
 from ctamonitoring.property_recorder.callbacks import CBFactory, BaseArchCB
 
-from ACS import CBDescOut  # @UnresolvedImport
 from ACSErr import Completion  # @UnresolvedImport
+from ACS import CBDescOut  # @UnresolvedImport
 from ACS import (
     _objref_ROBool,  # @UnresolvedImport
     _objref_RObooleanSeq,   # @UnresolvedImport
@@ -56,7 +56,7 @@ from ACS import (
     _objref_RWlong,         # @UnresolvedImport
     _objref_RWpattern,      # @UnresolvedImport
     _objref_RWuLongLong    # @UnresolvedImport
-    )
+)
 from mock import (create_autospec, MagicMock)
 from Acspy.Common.Log import logging
 
@@ -79,6 +79,7 @@ class BaseArchCBTest(unittest.TestCase):
         """
         self.dummy_logger = create_autospec(logging.Logger)("TestLogger")
         self.dummy_logger.logDebug = MagicMock()
+        self.dummy_logger.logWarning = MagicMock()
 
     def test_init(self):
 
@@ -86,6 +87,22 @@ class BaseArchCBTest(unittest.TestCase):
                         self.dummy_logger)
         cb._logger = self.dummy_logger
         self.assertEqual('INIT', cb.status)
+
+        self.assertRaises(
+            ValueError,
+            BaseArchCB,
+            None,
+            self.backend_buffer,
+            self.dummy_logger
+        )
+
+        self.assertRaises(
+            ValueError,
+            BaseArchCB,
+            self.my_property,
+            None,
+            self.dummy_logger
+        )
 
     def test_working(self):
         cb = BaseArchCB(self.my_property, self.backend_buffer,
@@ -97,6 +114,11 @@ class BaseArchCBTest(unittest.TestCase):
         cb.working(value, completion, desc)
         self.assertEqual('WORKING', cb.status)
 
+        completion = Completion(3, 3, 3, [])
+        desc = CBDescOut(3, "e")
+        cb.working(value, completion, desc)
+        self.assertEqual('WORKING', cb.status)
+
     def test_done(self):
         cb = BaseArchCB(self.my_property, self.backend_buffer,
                         self.dummy_logger)
@@ -104,6 +126,15 @@ class BaseArchCBTest(unittest.TestCase):
         value = 1
         completion = Completion(1, 0, 0, [])
         desc = CBDescOut(1, "e")
+        cb.done(value, completion, desc)
+        self.assertEqual('DONE', cb.status)
+
+        cb = BaseArchCB(self.my_property, self.backend_buffer,
+                        self.dummy_logger)
+        cb._logger = self.dummy_logger
+        value = 1
+        completion = Completion(3, 3, 3, [])
+        desc = CBDescOut(3, "e")
         cb.done(value, completion, desc)
         self.assertEqual('DONE', cb.status)
 
@@ -302,16 +333,19 @@ class CBFactoryTest(unittest.TestCase):
                                     self.dummy_logger)
         self.assertTrue(isinstance(cb, callbacks.ArchCBuLongLong))
 
+        prop = _objref_RWuLongLong(None)
+        prop._NP_RepositoryId = None  # Mock an Enum Prop
+        cb = CBFactory.get_callback(prop, "", self.backend_buffer,
+                                    self.dummy_logger)
+        self.assertTrue(isinstance(cb, callbacks.ArchCBpatternValueRep))
 
 if __name__ == '__main__':
     unittest.main()
 
 
-def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(BaseArchCBTest))
-    suite.addTest(unittest.makeSuite(CBFactoryTest))
-    return suite
+suite = unittest.TestSuite()
+suite.addTest(unittest.makeSuite(BaseArchCBTest))
+suite.addTest(unittest.makeSuite(CBFactoryTest))
 
 
 if __name__ == "__main__":

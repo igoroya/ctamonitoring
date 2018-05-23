@@ -7,6 +7,8 @@ import unittest
 from enum import Enum
 from ctamonitoring.property_recorder.util import (enum_util)
 
+__version__ = "$Id$"
+
 
 class EnumUtilTest(unittest.TestCase):
 
