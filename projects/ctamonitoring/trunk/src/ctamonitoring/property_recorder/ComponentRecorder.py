@@ -1,24 +1,24 @@
 __version__ = "$Id: ComponenrRecorder.py 1623 2015-12-15 17:39:32Z igoroya $"
 # --CORBA STUBS-------recorder_config------------------------------------------
-import actl__POA
-import actl
+import actl__POA  # @UnresolvedImport
+import actl  # @UnresolvedImport
 # Module Imports
 from ctamonitoring.property_recorder.config import RecorderConfig
 from ctamonitoring.property_recorder.front_end import FrontEnd
 from ctamonitoring.property_recorder.frontend_exceptions import (
     BadCdbRecorderConfig)
-from ctamonitoring.property_recorder.util import EnumUtil
+from ctamonitoring.property_recorder.util import enum_util
 from ctamonitoring.property_recorder.config import BACKEND_TYPE
 # --ACS Imports----------------------------------------------------------
 from Acspy.Servants.CharacteristicComponent import CharacteristicComponent
 from Acspy.Servants.ContainerServices import ContainerServices
 from Acspy.Servants.ComponentLifecycle import ComponentLifecycle
-from CORBA import TRUE, FALSE
-# these are necessary for python components reading
+from CORBA import TRUE, FALSE # @UnresolvedImport
+# these are necessary for python components readingcdbErrType
 from Acspy.Common import CDBAccess
 from Acspy.Util import XmlObjectifier  # as before
 import ACSErrTypeCommonImpl
-import cdbErrType
+from cdbErrType import CDBRecordDoesNotExistEx # @UnresolvedImport
 from xml.parsers.expat import ExpatError
 # Other Imports
 import ast
@@ -184,7 +184,7 @@ class RecorderConfigDecoder(object):
         try:
             componentCDB = XmlObjectifier.XmlObject(
                 cdb.get_DAO('alma/%s' % (component_name)))
-        except cdbErrType.CDBRecorDoesNotExistEx as e:
+        except CDBRecordDoesNotExistEx as e:
             raise BadCdbRecorderConfig(e)
         except ExpatError as e:
             raise BadCdbRecorderConfig(e)
@@ -219,7 +219,7 @@ class RecorderConfigDecoder(object):
                 raise BadCdbRecorderConfig(e, "max_props")
 
         try:
-            recorder_config.backend_type = EnumUtil.from_string(
+            recorder_config.backend_type = enum_util.from_string(
                 BACKEND_TYPE,
                 componentCDB.firstChild.getAttribute(
                     "backend").decode()

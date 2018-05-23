@@ -35,7 +35,7 @@ from Acspy.Clients.SimpleClient import PySimpleClient
 from ctamonitoring.property_recorder.config import RecorderConfig
 from ctamonitoring.property_recorder.front_end import FrontEnd
 from ctamonitoring.property_recorder.config import BACKEND_TYPE
-from ctamonitoring.property_recorder.util import EnumUtil
+from ctamonitoring.property_recorder.util import enum_util
 from ACSErrTypeCommonImpl import CORBAProblemExImpl
 
 
@@ -175,7 +175,7 @@ class ValidBackendAction(argparse.Action):
     '''
     def __call__(self, parser, namespace, values, option_string=None):
         try:
-            backend_type = EnumUtil.from_string(BACKEND_TYPE, values)
+            backend_type = enum_util.from_string(BACKEND_TYPE, values)
         except KeyError:
             allowed = str([e.name for e in BACKEND_TYPE])
             parser.error(

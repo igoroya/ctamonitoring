@@ -11,7 +11,7 @@ Contains exceptions that could be raised by the front-end module
 '''
 
 
-class ComponenNotFoundError(Exception):
+class ComponentNotFoundError(Exception):
     '''
     When a component entry is not found when is was indeed expected
     '''
@@ -57,7 +57,7 @@ class CannotAddComponentException(Exception):
         return retVal
 
 
-class WrongComponenStateError(Exception):
+class WrongComponentStateError(Exception):
     '''
     When a component entry is existing but with a wrong state
     '''

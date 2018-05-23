@@ -14,13 +14,12 @@ import collections
 from __builtin__ import str
 from ctamonitoring.property_recorder.config import BACKEND_REGISTRIES
 from ctamonitoring.property_recorder.config import PropertyAttributeHandler
-from ctamonitoring.property_recorder.util import PropertyTypeUtil
-from ctamonitoring.property_recorder.util import ComponentUtil
+from ctamonitoring.property_recorder.util import component_util
 from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder.callbacks import CBFactory
 from ACS import CBDescIn  # @UnresolvedImport
 from ctamonitoring.property_recorder.frontend_exceptions import UnsupporterPropertyTypeError,\
-    ComponenNotFoundError, WrongComponenStateError, AcsIsDownError,\
+    ComponentNotFoundError, WrongComponentStateError, AcsIsDownError,\
     CannotAddComponentException
 from CORBA import UNKNOWN, OBJECT_NOT_EXIST, OBJ_ADAPTER# @UnresolvedImport
 from maciErrTypeImpl import CannotGetComponentExImpl
@@ -217,15 +216,15 @@ class FrontEnd(object):
                 self.logger.logDebug("checking component: " + compName)
 
                 try:
-                    ComponentUtil.is_component_state_ok(
-                        comp_reference, compName)
-                except ComponenNotFoundError:
+                    component_util.is_component_state_ok(
+                        comp_reference)
+                except ComponentNotFoundError:
                     self.logger.logDebug(
                         "the component "
                         + compName
                         + " does not exists anymore")
                     self._componentsMap.pop(compName)
-                except WrongComponenStateError:
+                except WrongComponentStateError:
                     self.logger.logDebug(
                         "the component "
                         + compName
@@ -365,7 +364,7 @@ class FrontEnd(object):
                     # prevent them of being deactivated
                 component = self.acs_client.getComponentNonSticky(
                     component_id)
-                if(ComponentUtil.is_a_property_recorder_component(component)):
+                if(component_util.is_a_property_recorder_component(component)):
                     self.logger.logDebug("skipping other property recorders")
                     return
 	 	
@@ -443,12 +442,12 @@ class FrontEnd(object):
         component = component_reference
         monitor_list = []
 
-        if not ComponentUtil.is_characteristic_component(component):
+        if not component_util.is_characteristic_component(component):
             self.logger.logDebug("Component is not characteristic")
             return monitor_list
 
         try:
-            is_python = ComponentUtil.is_python_char_component(component)
+            is_python = component_util.is_python_char_component(component)
             if is_python: 
 	       self.logger.logDebug(
                 'Python component found')
@@ -474,7 +473,7 @@ class FrontEnd(object):
             self.logger.logDebug(
                 'probably is a property, trying to get the information '
                 'for the archive')
-            obj_chars = ComponentUtil.get_objectified_cdb(component)
+            obj_chars = component_util.get_objectified_cdb(component)
             for obj_char in obj_chars:
                 try:
                     acs_property = self._get_property_object(
@@ -554,7 +553,7 @@ class FrontEnd(object):
         if acs_property is None:
             raise ValueError
 
-        if not PropertyTypeUtil.is_property_ok(acs_property):
+        if not component_util.is_property_ok(acs_property):
             raise ValueError
 
         return acs_property
@@ -602,7 +601,7 @@ class FrontEnd(object):
         component_type = component_reference._NP_RepositoryId
 
         #  This raises UnsupporterPropertyTypeError
-        my_prop_type = PropertyTypeUtil.get_property_type(
+        my_prop_type = component_util.get_property_type(
             acs_property._NP_RepositoryId)
 
         # TODO: Think in what to do with the enum states
@@ -611,7 +610,7 @@ class FrontEnd(object):
         if (my_prop_type is None) or (my_prop_type is PropertyType.OBJECT):
                     my_prop_type = PropertyType.OBJECT
                     try:
-                        enumStates = PropertyTypeUtil.get_enum_prop_dict(
+                        enumStates = component_util.get_enum_prop_dict(
                             acs_property)
                         self.logger.logDebug(
                             "Enum States found: "+str(enumStates))
@@ -701,11 +700,12 @@ class FrontEnd(object):
         property_monitor.set_timer_trigger(time_trigger_omg)
 
         archive_delta = property_attributes.get("archive_delta")
-        if PropertyTypeUtil.is_archive_delta_enabled(archive_delta):
+        if component_util.is_archive_delta_enabled(archive_delta):
             property_monitor.set_value_trigger(archive_delta, True)
 
         archive_delta_perc = property_attributes.get("archive_delta_percent")
-        if PropertyTypeUtil.is_archive_delta_enabled(archive_delta_perc):
+        #TODO: Is this a bug? Asks for archive delta_perc but check archive_delta
+        if component_util.is_archive_delta_enabled(archive_delta_perc):
             property_monitor.set_value_percent_trigger(
                 archive_delta_perc, True)
 

@@ -26,7 +26,7 @@ from ctamonitoring.property_recorder.backend import get_registry_class
 from enum import Enum
 from ACS import NoSuchCharacteristic  # @UnresolvedImport
 from ctamonitoring.property_recorder.constants import PROPERTY_ATTRIBUTES
-from ctamonitoring.property_recorder.util import AttributeDecoder
+from ctamonitoring.property_recorder.util import attribute_decoder
 from Acspy.Common.Log import getLogger
 
 
@@ -329,13 +329,13 @@ class PropertyAttributeHandler(object):
         # TODO: make a logger at module level. Then activate the warninigd below
         # logger = getLogger('property_recorder.config.PropertyAttributeHandler')
         try:
-            value = AttributeDecoder.decode_attribute(
+            value = attribute_decoder.decode_attribute(
                 raw_value, attribute.decoding)
         except ValueError:
             # logger.debug("Could not decode attribute, try a boolean", exc_info=True)
             # If is boolean and the decoding fails we try to catch it here
             try:
-                value = AttributeDecoder.decode_boolean(raw_value)
+                value = attribute_decoder.decode_boolean(raw_value)
             except (ValueError, TypeError):
                 # logger.debug("Could not decode attribute", exc_info=True)
                 value = None
