@@ -1,4 +1,4 @@
-__version__ = "$Id: ComponenrRecorder.py 1623 2015-12-15 17:39:32Z igoroya $"
+__version__ = "$Id$"
 # --CORBA STUBS-------recorder_config------------------------------------------
 import actl__POA  # @UnresolvedImport
 import actl  # @UnresolvedImport
@@ -29,9 +29,9 @@ Contains the code to run the property recorder as an ACS component
 @author: igoroya
 @organization: HU Berlin
 @copyright: cta-observatory.org
-@version: $Id: frontend_exceptions.py 1623 2015-12-15 17:39:32Z igoroya $
-@change: $LastChangedDate: 2015-12-15 18:39:32 +0100 (Tue, 15 Dec 2015) $
-@change: $LastChangedBy: igoroya $
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
 
 Note: the module name and the class name of the component must match
 I judged that was less confusing to have the package name to follow the Class

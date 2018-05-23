@@ -7,7 +7,8 @@ import unittest
 from enum import Enum
 from ctamonitoring.property_recorder.util import (enum_util)
 
-class enum_util_test(unittest.TestCase):
+
+class EnumUtilTest(unittest.TestCase):
 
     def test_to_string(self):
         test_enum = Enum('test_enum', 'DUMMY LOG MYSQL MONGODB')
@@ -32,10 +33,9 @@ if __name__ == '__main__':
     unittest.main()
 
 
-def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(enum_util_test))
-    return suite
+suite = unittest.TestSuite()
+suite.addTest(unittest.makeSuite(EnumUtilTest))
+
 
 if __name__ == "__main__":
     unittest.main(defaultTest='suite')  # run all tests

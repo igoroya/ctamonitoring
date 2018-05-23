@@ -2,7 +2,7 @@
 
 # ALMA - Atacama Large Millimiter Array
 #
-# "@(#) $Id: Makefile,v 1.20 2009/03/11 17:08:51 hsommer Exp $" 
+# "@(#) $Id$" 
 #
 # Makefile of ........
 #

@@ -37,7 +37,7 @@ from random import random
 
 __all__ = []
 __version__ = \
-    "$Revision$".split()[1]
+    "$Revision: 1254 $".split()[1]
 __date__ = "2015-05-22"
 __updated__ = \
     "$LastChangedDate$" \

@@ -11,7 +11,7 @@
 
 __all__ = []
 __version__ = \
-    "$Revision$".split()[1]
+    "$Revision: 1231 $".split()[1]
 __date__ = "2014-01-06"
 __updated__ = \
     "$LastChangedDate$" \

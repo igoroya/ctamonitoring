@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = "$Id: test_acs_integration.py 1654 2015-12-22 11:07:42Z igoroya $"
+__version__ = "$Id$"
 '''
 ACS Integration test for Property Recorder
 
@@ -12,9 +12,9 @@ ad the continuous integration steps and not during development
 @author: igoroya
 @organization: DESY Zeuthen
 @copyright: cta-observatory.org
-@version: $Id: test_acs_integration.py 1168 2015-04-13 18:42:27Z igoroya $
-@change: $LastChangedDate: 2015-04-13 20:42:27 +0200 (Mon, 13 Apr 2015) $
-@change: $LastChangedBy: igoroya $
+@version: $Id$
+@change: $LastChangedDate$
+@change: $LastChangedBy$
 @requires: unittest
 @requires: ctamonitoring.property_recorder.util
 @requires: logging
