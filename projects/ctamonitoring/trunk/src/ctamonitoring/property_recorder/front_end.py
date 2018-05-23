@@ -24,7 +24,7 @@ from ctamonitoring.property_recorder.frontend_exceptions import UnsupporterPrope
 from CORBA import UNKNOWN, OBJECT_NOT_EXIST, OBJ_ADAPTER# @UnresolvedImport
 from maciErrTypeImpl import CannotGetComponentExImpl
 
-PropertyType = property_type.PropertyType
+PROPERTY_TYPE = property_type.PropertyType
 
 ComponentInfo = collections.namedtuple(
     'componentInfo',
@@ -607,8 +607,8 @@ class FrontEnd(object):
         # TODO: Think in what to do with the enum states
         enumStates = None
 
-        if (my_prop_type is None) or (my_prop_type is PropertyType.OBJECT):
-                    my_prop_type = PropertyType.OBJECT
+        if (my_prop_type is None) or (my_prop_type is PROPERTY_TYPE.OBJECT):
+                    my_prop_type = PROPERTY_TYPE.OBJECT
                     try:
                         enumStates = component_util.get_enum_prop_dict(
                             acs_property)
