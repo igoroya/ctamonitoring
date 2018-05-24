@@ -1,12 +1,10 @@
-__version__ = "$Id$"
 
-'''
+"""
 An application version of the property recorder
 
 This is a version of the property recorder that is run as
 a stand-alone application and not as an ACS component.
 (see ComponentRecorder.py for the component version)
-
 
 @author: igoroya
 @organization: DESY Zeuthen
@@ -24,7 +22,7 @@ a stand-alone application and not as an ACS component.
 @requires: ctamonitoring.property_recorder.front_end
 @requires: ctamonitoring.property_recorder.util
 @requires: ACSErrTypeCommonImpl
-'''
+"""
 
 import logging
 import argparse
@@ -38,12 +36,16 @@ from ctamonitoring.property_recorder.config import BACKEND_TYPE
 from ctamonitoring.property_recorder.util import enum_util
 from ACSErrTypeCommonImpl import CORBAProblemExImpl
 
+__version__ = "$Id$"
+
+CLIENT_REFRESH_TIME_SEC = 10
+
 
 class StandaloneRecorder(object):
-    '''
+    """
     A property recorder that works as an stand-alone application
 
-    '''
+    """
     def __init__(self, recorder_config, verbosity):
         '''
         Ctor
@@ -137,13 +139,6 @@ class StandaloneRecorder(object):
         '''
         return self._front_end.is_acs_client_ok
 
-    def __del__(self):
-        if not self.__canceled:
-            try:
-                self.close()
-            except Exception:
-                self._logger.exception("could not stop")
-
     def print_config(self):
         '''
         Prints into the logger the existing configuration
@@ -156,13 +151,13 @@ class StandaloneRecorder(object):
 
 
 class ConfigBackendAction(argparse.Action):
-    '''
+    """
     Action to interpret the user input for the configuration of backend
-    '''
+    """
     def __call__(self, parser, namespace, values, option_string=None):
         try:
             backend_config_decoded = ast.literal_eval(values)
-            assert type(backend_config_decoded) is dict
+            assert isinstance(backend_config_decoded, dict)
         except (SyntaxError, ValueError, TypeError, AssertionError):
             parser.error("'%s' is not a valid backend config" % values)
 
@@ -170,9 +165,9 @@ class ConfigBackendAction(argparse.Action):
 
 
 class ValidBackendAction(argparse.Action):
-    '''
+    """
     Action to interpret the user input for the type of backend
-    '''
+    """
     def __call__(self, parser, namespace, values, option_string=None):
         try:
             backend_type = enum_util.from_string(BACKEND_TYPE, values)
@@ -189,9 +184,9 @@ class ValidBackendAction(argparse.Action):
 
 
 class ComponentAction(argparse.Action):
-    '''
+    """
     Action to interpret the user input for the list of components
-    '''
+    """
     def __call__(self, parser, namespace, values, option_string=None):
         try:
             component_list_decoded = set(ast.literal_eval(values))
@@ -202,13 +197,13 @@ class ComponentAction(argparse.Action):
 
 
 class RecorderParser(object):
-    '''
+    """
     Parses command line arguments to configure the property recorder
 
     Also provides some textual help to the user
-    '''
+    """
     def __init__(self, config=None):
-        '''
+        """
         ctor
 
         @param config: configuration of the font-end
@@ -218,7 +213,7 @@ class RecorderParser(object):
         @see:
         ctamonitoring.property_recorder.test_standalone_recorder.RecorderParserTest
         for an example to set the config as an argument.
-        '''
+        """
         argparser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
 
         argparser.add_argument(
@@ -277,15 +272,15 @@ class RecorderParser(object):
             action=ValidBackendAction,
             dest='backend_type',
             type=str,
-            help='The backends to be used, available ones are '
-                 + str([e.name for e in BACKEND_TYPE]))
+            help='The backends to be used, available ones are ' +
+                 str([e.name for e in BACKEND_TYPE]))
         argparser.add_argument(
             '--backend_config', action=ConfigBackendAction,
             dest='backend_config',
             type=str,
             help='String using Python encoding with a map configuration '
-                 'parameters for the backend e.g. "'
-                 + str({'database': 'ctamonitoring'}) + '"')
+                 'parameters for the backend e.g. "' +
+                 str({'database': 'ctamonitoring'}) + '"')
         argparser.add_argument(
             '--component_list',
             action=ComponentAction,
@@ -293,8 +288,8 @@ class RecorderParser(object):
             type=str,
             help='The include or exclude list, using the Python encoding '
                  'depending of component represented by their string names. '
-                 'on the include_mode, e.g. "'
-                 + str(['Component1', 'Component2']) + '"')
+                 'on the include_mode, e.g. "' +
+                 str(['Component1', 'Component2']) + '"')
         argparser.add_argument(
             '-v', dest='verbose',
             action='store_true',
@@ -312,13 +307,12 @@ class RecorderParser(object):
         self._args = vars(args)
 
     def get_verbosity(self):
-        '''
-        Gets the verbosity level of the logs provided by standalone recorder
-        console
+        """
+        Gets the verbosity level of the logs by standalone recorder console
 
         @return: verbosity level
         @rtype: int
-        '''
+        """
         if 'more_verbose' in self._args:
             return logging.NOTSET
         elif 'verbose' in self._args:
@@ -327,13 +321,13 @@ class RecorderParser(object):
             return logging.INFO
 
     def get_config(self):
-        '''
+        """
         Factory to create the configuration of the recorder
 
         The configuration will be created from the parsed configuration data.
         @return: Configuration of the recorder.
         @rtype: ctamonitoring.property_recorder.config.RecorderConfig
-        '''
+        """
         recorder_config = RecorderConfig()
 
         if 'default_timer_trigger' in self._args:
@@ -358,37 +352,51 @@ class RecorderParser(object):
         return recorder_config
 
 
-if __name__ == "__main__":
-
-    # Configure
+def get_input_config():
+    """
+    Obtains and sets the recorder config from the parser
+    """
     my_parser = RecorderParser()
     my_recorder_config = my_parser.get_config()
     my_verbosity = my_parser.get_verbosity()
+    config = (my_recorder_config, my_verbosity)
+    return config
 
-    # Create a recorder.
-    recorder = StandaloneRecorder(my_recorder_config, my_verbosity)
 
-    # Show the configuration
-    recorder.print_config()
+def _run_until_interrupted(recorder, client_refresh_sec):
+    """
+    Makes the main thread to work until keyboard interruption
 
-    # Start recording
-    recorder.start()
-
-    # Work until user stops
+    @param recorder: property recorder object.
+    @type recorder: StandaloneRecorder
+    @param client_refresh_sec: rate to refresh ACS client.
+    @type client_refresh_sec: int
+    """
     try:
         while True:
-            time.sleep(10)
+            time.sleep(client_refresh_sec)
             if not recorder.is_acs_client_ok():
                 try:
                     recorder.make_new_acs_client()
                 except CORBAProblemExImpl:
-                    # We get an exception if ACS is down, so we give him time
-                    print 'ACS is down, will wait 10 sec. for its recovery'
+                    # Exception means ACS is down, so we give time to recover
+                    print('ACS is down, will wait 10 sec. for its recovery')
     except KeyboardInterrupt:
-        print 'Command to stop the recorder'
+        print('Command to stop the recorder')
 
     finally:
         recorder.close()
         recorder = None
 
-    print 'Exit application'
+
+def run_standlone_recorder(config, client_refresh_sec):
+    recorder = StandaloneRecorder(*config)
+    recorder.print_config()
+    recorder.start()
+    _run_until_interrupted(recorder, client_refresh_sec)
+
+
+if __name__ == "__main__":
+    application_config = get_input_config()
+    run_standlone_recorder(application_config, CLIENT_REFRESH_TIME_SEC)
+    print('Exit application')

@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-__version__ = "$Id$"
-
-
-'''
+"""
 Unit test module for test_config
 
 @author: igoroya
@@ -11,9 +7,7 @@ Unit test module for test_config
 @version: $Id$
 @change: $LastChangedDate$
 @change: $LastChangedBy$
-'''
-
-
+"""
 import unittest
 from ctamonitoring.property_recorder.front_end import (
     ComponentStore,
@@ -30,6 +24,9 @@ import sys
 import time
 import logging
 from StringIO import StringIO
+
+
+__version__ = "$Id$"
 
 
 class PrintArgs(object):

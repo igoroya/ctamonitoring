@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-__version__ = "$Id$"
-
-'''
+"""
 Unit test module for test_config
 
 @author: igoroya
@@ -18,21 +15,23 @@ Unit test module for test_config
 @requires: StringIO
 @requires: sys
 @requires: time
-'''
-
-
+"""
 import unittest
 import logging
-from ctamonitoring.property_recorder.config import (
-    BACKEND_TYPE, RecorderConfig)
-from ctamonitoring.property_recorder.standalone_recorder import (
-    RecorderParser, StandaloneRecorder)
-from ctamonitoring.property_recorder.front_end import FrontEnd
-from Acspy.Clients.SimpleClient import PySimpleClient
 from contextlib import contextmanager
 from StringIO import StringIO
 import sys
 from mock import create_autospec
+from Acspy.Clients.SimpleClient import PySimpleClient
+from ctamonitoring.property_recorder.config import (
+    BACKEND_TYPE, RecorderConfig)
+from ctamonitoring.property_recorder.standalone_recorder import (
+    RecorderParser, StandaloneRecorder, get_input_config)
+from ctamonitoring.property_recorder.front_end import FrontEnd
+
+
+__version__ = "$Id$"
+
 
 logging.basicConfig()
 
@@ -53,6 +52,7 @@ def capture_sys_output():
 
 
 class Defaults:
+
     '''
     Defauls values for the unit test
     '''
@@ -67,12 +67,14 @@ class Defaults:
 
 
 class MockedStandaloneRecorder(StandaloneRecorder):
+
     '''
     Mock a standalone recorder to make the unit test without requiring ACS up
 
     We mock the ACS Python client, the frontend, and use the standard
     logger instead of the ACS logger.
     '''
+
     def _setup_acs_client(self):
         self._my_acs_client = create_autospec(PySimpleClient)
         self._logger = logging.Logger("test_logger")
@@ -85,6 +87,7 @@ class MockedStandaloneRecorder(StandaloneRecorder):
 
 
 class StandaloneRecorderTest(unittest.TestCase):
+
     def setUp(self):
         recorder_config = RecorderConfig()
         self.recorder = MockedStandaloneRecorder(
@@ -169,18 +172,7 @@ class RecorderParserTest(unittest.TestCase):
 
         recorder_config = recoder_parser.get_config()
 
-        self.assertEqual(Defaults.default_timer_trigger,
-                         recorder_config.default_timer_trigger)
-        self.assertEqual(Defaults.max_comps, recorder_config.max_comps)
-        self.assertEqual(Defaults.max_props, recorder_config.max_props)
-        self.assertEqual(Defaults.checking_period,
-                         recorder_config.checking_period)
-        self.assertEqual(Defaults.backend_type, recorder_config.backend_type)
-        self.assertEqual(Defaults.backend_config,
-                         recorder_config.backend_config)
-        self.assertEqual(Defaults.is_include_mode,
-                         recorder_config.is_include_mode)
-        self.assertEqual(Defaults.components, recorder_config.components)
+        asset_defaults(recorder_config, self)
 
     def test_get_verbosity(self):
         '''
@@ -226,10 +218,34 @@ class RecorderParserTest(unittest.TestCase):
         self.assertEqual(exit_exception.code, 2)
 
 
+def asset_defaults(recorder_config, test):
+    test.assertEqual(Defaults.default_timer_trigger,
+                     recorder_config.default_timer_trigger)
+    test.assertEqual(Defaults.max_comps, recorder_config.max_comps)
+    test.assertEqual(Defaults.max_props, recorder_config.max_props)
+    test.assertEqual(Defaults.checking_period,
+                     recorder_config.checking_period)
+    test.assertEqual(Defaults.backend_type, recorder_config.backend_type)
+    test.assertEqual(Defaults.backend_config,
+                     recorder_config.backend_config)
+    test.assertEqual(Defaults.is_include_mode,
+                     recorder_config.is_include_mode)
+    test.assertEqual(Defaults.components, recorder_config.components)
+
+
+class ApplicationTest(unittest.TestCase):
+
+    def test_get_input_config(self):
+        recorder_config, verbosity = get_input_config()
+        asset_defaults(recorder_config, self)
+        self.assertEqual(logging.INFO, verbosity)
+
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(StandaloneRecorderTest))
     suite.addTest(unittest.makeSuite(RecorderParserTest))
+    suite.addTest(unittest.makeSuite(ApplicationTest))
     return suite
 
 if __name__ == "__main__":
