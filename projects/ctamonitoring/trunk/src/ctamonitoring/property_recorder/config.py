@@ -1,5 +1,4 @@
-__version__ = "$Id$"
-'''
+"""
 Contains the configuration holder for the property recorder
 
 The module with contains all what is related to the configuration holding
@@ -19,19 +18,16 @@ for the property recorder frontend
 @requires: Acspy.Common.Log
 @requires: Acspy.Common
 @requires: Acspy.Util
-'''
-
-
-from ctamonitoring.property_recorder.backend import get_registry_class
+"""
 from enum import Enum
 from ACS import NoSuchCharacteristic  # @UnresolvedImport
 from ctamonitoring.property_recorder.constants import PROPERTY_ATTRIBUTES
 from ctamonitoring.property_recorder.util import attribute_decoder
-from Acspy.Common.Log import getLogger
+from ctamonitoring.property_recorder.backend import get_registry_class
 
+__version__ = "$Id$"
 
 BACKEND_TYPE = Enum('BACKEND_TYPE', 'DUMMY LOG MYSQL MONGODB')
-
 
 BACKEND_REGISTRIES = {}
 BACKEND_REGISTRIES[BACKEND_TYPE.DUMMY] = get_registry_class("dummy")
@@ -41,8 +37,7 @@ BACKEND_REGISTRIES[BACKEND_TYPE.MONGODB] = get_registry_class("mongodb")
 
 
 class RecorderConfig(object):
-
-    '''
+    """
     Holds the configuration from the property recorder
 
     @ivar default_timer_trigger:  Monitoring rate for those properties
@@ -70,10 +65,10 @@ class RecorderConfig(object):
     @ivar components: The include or exclude list, depending on the value of
     is_include_mode, of component represented by their string names
     @type components: set
-    '''
+    """
 
     def __init__(self):
-        '''
+        """
         Initializes the values to those defined as default
 
         The default values are:
@@ -84,7 +79,7 @@ class RecorderConfig(object):
         backend_type = BACKEND_TYPE.DUMMY
         backend_config = None
         is_include_mode = False
-        '''
+        """
         # 1/min, units in in 100 of ns, OMG time
         self._default_timer_trigger = 60.0
         # will not accept more components if this number is exceeded
@@ -102,12 +97,12 @@ class RecorderConfig(object):
 
     @property
     def default_timer_trigger(self):
-        '''"
+        """"
         The monitoring rate in s to be used when no input is provided
         in the CDB
 
         @raise ValueError: When input type is incorrect or value is negative
-        '''
+        """
         return self._default_timer_trigger
 
     @default_timer_trigger.setter
@@ -119,11 +114,11 @@ class RecorderConfig(object):
 
     @property
     def max_comps(self):
-        '''"
+        """"
         The maximum number of components that the recorder will monitor.
 
         @raise ValueError: When input type is incorrect or value is negative
-        '''
+        """
         return self._max_comps
 
     @max_comps.setter
@@ -135,12 +130,12 @@ class RecorderConfig(object):
 
     @property
     def max_props(self):
-        '''"
+        """"
         The total maximum number of properties, including all the components,
         that the recorder will monitor.
 
         @raise ValueError: When input type is incorrect or value is negative
-        '''
+        """
         return self._max_props
     max_props.setter
 
@@ -153,12 +148,12 @@ class RecorderConfig(object):
 
     @property
     def checking_period(self):
-        '''"
+        """"
         The period in s that the recorder uses to find new
         components in the system
 
         @raise ValueError: When input type is incorrect or value is negative
-        '''
+        """
         return self._checking_period
 
     @checking_period.setter
@@ -182,14 +177,14 @@ class RecorderConfig(object):
 
     @property
     def is_include_mode(self):
-        '''"
+        """"
         The mode to handle the component list. If true, the property recorder
         works in include mode which means that will only monitor those
         components in the list
 
         If false, the list will be used as an exclude mode, and therefore
         any component accessible will be used except those in the list
-        '''
+        """
         return self._is_include_mode
 
     @is_include_mode.setter
@@ -208,11 +203,11 @@ class RecorderConfig(object):
             "Cannot mutate, components are set by setComponentList")
 
     def set_components(self, components):
-        '''
+        """
         Replaces the actual list of components by the provided one.
 
         @raise ValueError: If any of the components in the list is not str
-        '''
+        """
         if type(components) is not set:
             raise TypeError("A set of str needs to be provided")
 
@@ -225,134 +220,121 @@ class RecorderConfig(object):
         self._components = components
 
 
-class PropertyAttributeHandler(object):
-    '''
-    Helper class to decode attributes properties
-    '''
+def get_prop_attribs_cdb(acs_property):
+    """
+    Gets attributes from a property and creates a map with
+    attribute name, value
 
-    @staticmethod
-    def get_prop_attribs_cdb(acs_property):
-        '''
-        Gets attributes from a property and creates a map with
-        attribute name, value
+    @param acs_property: the ACS property object
+    @return: dictionary of attribute types and values
+    @rtype: dictionary
+    """
 
-        @param acs_property: the ACS property object
-        @return: dictionary of attribute types and values
-        @rtype: dictionary
-        '''
-
-        attributes = {}
-        for attribute in PROPERTY_ATTRIBUTES:
-            attributes[attribute.name] = (
-                PropertyAttributeHandler._get_cdb_entry(
-                    attribute, acs_property)
-                )
-
-        attributes['name'] = acs_property._get_name()
-
-        return attributes
-
-    @staticmethod
-    def get_prop_attribs_cdb_xml(acs_property):
-        '''
-        Gets attributes from a property from an objectified XML
-
-        Gets attributes from a property using the XML objectifier
-        by creating a map of attribute name, value.
-
-        This needs to be used for python characteristic components,
-        as the property attributes are empty for those components.
-
-        @see:
-        ctamonitoring.property_recorder.util.ComponentUtil.get_objectified_cdb
-
-        @param acs_property: the ACS property from the objectified XML
-        @return: dictionary of attribute types and values
-        @rtype: dictionary
-        '''
-
-        attributes = {}
-        for attribute in PROPERTY_ATTRIBUTES:
-            attributes[attribute.name] = (
-                PropertyAttributeHandler._get_cdb_entry_xml(
-                    attribute, acs_property)
+    attributes = {}
+    for attribute in PROPERTY_ATTRIBUTES:
+        attributes[attribute.name] = (
+            get_cdb_entry(attribute, acs_property)
             )
 
-        attributes['name'] = acs_property.nodeName
+    attributes['name'] = acs_property._get_name()
 
-        return attributes
+    return attributes
 
-    @staticmethod
-    def _get_cdb_entry(attribute, acs_property):
-        '''
-        Decode a cdb attribute entry for a property
 
-        Stardard method, used with Java and C++ components
-        @param attribute: attribute name to get
-        @type attribute: string
-        @param acs_property: the ACS property
-        @return: decoded cdb entry
-        '''
+def get_prop_attribs_cdb_xml(acs_property):
+    """
+    Gets attributes from a property from an objectified XML
 
-        try:
-            if len(acs_property.find_characteristic(
-                    attribute.name)) is 0:
-                return None
-            raw_value = acs_property.get_characteristic_by_name(
-                attribute.name).value()
-        except NoSuchCharacteristic:
+    Gets attributes from a property using the XML objectifier
+    by creating a map of attribute name, value.
+
+    This needs to be used for python characteristic components,
+    as the property attributes are empty for those components.
+
+    @see:
+    ctamonitoring.property_recorder.util.ComponentUtil.get_objectified_cdb
+
+    @param acs_property: the ACS property from the objectified XML
+    @return: dictionary of attribute types and values
+    @rtype: dictionary
+    """
+
+    attributes = {}
+    for attribute in PROPERTY_ATTRIBUTES:
+        attributes[attribute.name] = (
+            get_cdb_entry_xml(attribute, acs_property)
+        )
+
+    attributes['name'] = acs_property.nodeName
+
+    return attributes
+
+
+def get_cdb_entry(attribute, acs_property):
+    """
+    Decode a cdb attribute entry for a property
+
+    Stardard method, used with Java and C++ components
+    @param attribute: attribute name to get
+    @type attribute: string
+    @param acs_property: the ACS property
+    @return: decoded cdb entry
+    """
+
+    try:
+        if len(acs_property.find_characteristic(
+                attribute.name)) is 0:
             return None
+        raw_value = acs_property.get_characteristic_by_name(
+            attribute.name).value()
+    except NoSuchCharacteristic:
+        return None
 
-        return PropertyAttributeHandler._process_attribute(
-            attribute, raw_value)
+    return process_attribute(attribute, raw_value)
 
-    @staticmethod
-    def _get_cdb_entry_xml(attribute, acs_property_cdb):
-        '''
-        Decode a cdb attribute entry for a property
 
-        Used with Python components Would also work with C++ and Java
-        components but the performance is much worse
+def get_cdb_entry_xml(attribute, acs_property_cdb):
+    """
+    Decode a cdb attribute entry for a property
 
-        @param attribute: attribute name to get
-        @type attribute: string
-        @param acs_property_cdb: the ACS property objectified CDB
-        @type acs_property_cdb: xml.dom.minidom.Element
-        @return: decoded cdb entry
-        '''
-        raw_value = acs_property_cdb.getAttribute(attribute.name)
-        return PropertyAttributeHandler._process_attribute(
-            attribute, raw_value)
+    Used with Python components Would also work with C++ and Java
+    components but the performance is much worse
 
-    @staticmethod
-    def _process_attribute(attribute, raw_value):
-        # TODO: make a logger at module level. Then activate the warninigd below
-        # logger = getLogger('property_recorder.config.PropertyAttributeHandler')
+    @param attribute: attribute name to get
+    @type attribute: string
+    @param acs_property_cdb: the ACS property objectified CDB
+    @type acs_property_cdb: xml.dom.minidom.Element
+    @return: decoded cdb entry
+    """
+    raw_value = acs_property_cdb.getAttribute(attribute.name)
+    return process_attribute(attribute, raw_value)
+
+
+def process_attribute(attribute, raw_value):
+    try:
+        value = attribute_decoder.decode_attribute(
+            raw_value, attribute.decoding)
+    except ValueError:
+        # If is boolean and the decoding fails we try to catch it here
         try:
-            value = attribute_decoder.decode_attribute(
-                raw_value, attribute.decoding)
-        except ValueError:
-            # logger.debug("Could not decode attribute, try a boolean", exc_info=True)
-            # If is boolean and the decoding fails we try to catch it here
-            try:
-                value = attribute_decoder.decode_boolean(raw_value)
-            except (ValueError, TypeError):
-                # logger.debug("Could not decode attribute", exc_info=True)
-                value = None
-
-        # Check those cases when it has to be positive
-        if (attribute.isPositive) and (value is not None) and (value < 0.0):
+            value = attribute_decoder.decode_boolean(raw_value)
+        except (ValueError, TypeError):
+            # logger.debug("Could not decode attribute", exc_info=True)
             value = None
 
-        # Check those cases when it has to contain specific keyword synonym to
-        # yes, true etc
-        if (value is not None) and (attribute.yes_synonyms is not None):
-            value_lower = value.lower()
-            found = False
-            for entry in attribute.yes_synonyms:
-                if value_lower == entry:
-                    found = True
+    # Check those cases when it has to be positive
+    if (attribute.isPositive) and (value is not None) and (value < 0.0):
+        value = None
 
-            value = found
+    # Check those cases when it has to contain specific keyword synonym to
+    # yes, true etc
+    if (value is not None) and (attribute.yes_synonyms is not None):
+        value_lower = value.lower()
+        found = False
+        for entry in attribute.yes_synonyms:
+            if value_lower == entry:
+                found = True
 
-        return value
+        value = found
+
+    return value

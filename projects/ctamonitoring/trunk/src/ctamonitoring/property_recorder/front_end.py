@@ -13,7 +13,8 @@ import threading
 import collections
 from __builtin__ import str
 from ctamonitoring.property_recorder.config import BACKEND_REGISTRIES
-from ctamonitoring.property_recorder.config import PropertyAttributeHandler
+#from ctamonitoring.property_recorder.config import PropertyAttributeHandler
+from ctamonitoring.property_recorder import config
 from ctamonitoring.property_recorder.util import component_util
 from ctamonitoring.property_recorder.backend import property_type
 from ctamonitoring.property_recorder.callbacks import CBFactory
@@ -482,7 +483,7 @@ class FrontEnd(object):
                     continue
 
                 property_attributes = (
-                    PropertyAttributeHandler.get_prop_attribs_cdb_xml(
+                    config.get_prop_attribs_cdb_xml(
                         obj_char))
                 try:
                     property_monitor = self._get_property_monitor(
@@ -523,7 +524,7 @@ class FrontEnd(object):
                         continue
 
                     property_attributes = (
-                        PropertyAttributeHandler.get_prop_attribs_cdb(
+                        config.get_prop_attribs_cdb(
                             acs_property)
                         )
                     try:
