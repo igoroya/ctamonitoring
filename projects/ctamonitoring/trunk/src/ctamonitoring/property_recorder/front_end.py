@@ -12,7 +12,7 @@ Contains exceptions that could be raised by the front-end module
 import threading
 import collections
 from __builtin__ import str
-from ctamonitoring.property_recorder.config import BACKEND_REGISTRIES
+#from ctamonitoring.property_recorder.config import BACKEND_REGISTRIES
 #from ctamonitoring.property_recorder.config import PropertyAttributeHandler
 from ctamonitoring.property_recorder import config
 from ctamonitoring.property_recorder.util import component_util
@@ -180,6 +180,7 @@ class FrontEnd(object):
         self._is_acs_client_ok = True
 
     def _setup_backend(self):
+        BACKEND_REGISTRIES = config.get_registries()
         if self.recorder_config.backend_config is None:
             self._registry = BACKEND_REGISTRIES[
                 self.recorder_config.backend_type]()

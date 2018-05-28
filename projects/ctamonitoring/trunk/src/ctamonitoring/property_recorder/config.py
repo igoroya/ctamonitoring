@@ -27,14 +27,22 @@ from ctamonitoring.property_recorder.backend import get_registry_class
 
 __version__ = "$Id$"
 
+
 BACKEND_TYPE = Enum('BACKEND_TYPE', 'DUMMY LOG MYSQL MONGODB')
 
-BACKEND_REGISTRIES = {}
-BACKEND_REGISTRIES[BACKEND_TYPE.DUMMY] = get_registry_class("dummy")
-BACKEND_REGISTRIES[BACKEND_TYPE.LOG] = get_registry_class("log")
-BACKEND_REGISTRIES[BACKEND_TYPE.MYSQL] = None
-BACKEND_REGISTRIES[BACKEND_TYPE.MONGODB] = get_registry_class("mongodb")
+# BACKEND_REGISTRIES = {}
+# BACKEND_REGISTRIES[BACKEND_TYPE.DUMMY] = get_registry_class("dummy")
+# BACKEND_REGISTRIES[BACKEND_TYPE.LOG] = get_registry_class("log")
+# BACKEND_REGISTRIES[BACKEND_TYPE.MYSQL] = None
+# BACKEND_REGISTRIES[BACKEND_TYPE.MONGODB] = get_registry_class("mongodb")
 
+def get_registries():
+    BACKEND_REGISTRIES = {}
+    BACKEND_REGISTRIES[BACKEND_TYPE.DUMMY] = get_registry_class("dummy")
+    BACKEND_REGISTRIES[BACKEND_TYPE.LOG] = get_registry_class("log")
+    BACKEND_REGISTRIES[BACKEND_TYPE.MYSQL] = None
+    BACKEND_REGISTRIES[BACKEND_TYPE.MONGODB] = get_registry_class("mongodb")
+    return BACKEND_REGISTRIES
 
 class RecorderConfig(object):
     """
@@ -137,7 +145,6 @@ class RecorderConfig(object):
         @raise ValueError: When input type is incorrect or value is negative
         """
         return self._max_props
-    max_props.setter
 
     @max_props.setter
     def max_props(self, max_props):
@@ -189,7 +196,7 @@ class RecorderConfig(object):
 
     @is_include_mode.setter
     def is_include_mode(self, include_mode):
-        if type(include_mode) is not bool:
+        if not isinstance(include_mode, bool):
             raise TypeError("include_mode must be True or False")
         self._is_include_mode = include_mode
 
@@ -208,11 +215,11 @@ class RecorderConfig(object):
 
         @raise ValueError: If any of the components in the list is not str
         """
-        if type(components) is not set:
+        if not isinstance(components, set):
             raise TypeError("A set of str needs to be provided")
 
         for component in components:
-            if type(component) is not str:
+            if not isinstance(component, str):
                 raise TypeError(
                     "components need to be represented as str, a " +
                     str(type(component)) + "was provided")
@@ -311,6 +318,15 @@ def get_cdb_entry_xml(attribute, acs_property_cdb):
 
 
 def process_attribute(attribute, raw_value):
+    """
+    Parses and returns a CDB attribute
+
+    @param attribute: attribute to process
+    @type attribute: string
+    @param raw_value: raw value from the CDB
+    @type acs_property_cdb: xml.dom.minidom.Element
+    @return: decoded/parsed attribute
+    """
     try:
         value = attribute_decoder.decode_attribute(
             raw_value, attribute.decoding)
@@ -319,7 +335,6 @@ def process_attribute(attribute, raw_value):
         try:
             value = attribute_decoder.decode_boolean(raw_value)
         except (ValueError, TypeError):
-            # logger.debug("Could not decode attribute", exc_info=True)
             value = None
 
     # Check those cases when it has to be positive

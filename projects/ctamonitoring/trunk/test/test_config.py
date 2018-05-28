@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-__version__ = "$Id$"
-'''
+"""
 Unit test module for config
 
 @author: igoroya
@@ -14,26 +12,27 @@ Unit test module for config
 @requires: ctamonitoring.property_recorder.config
 @requires: mock
 @requires: CORBA
-'''
+"""
 import unittest
-from ctamonitoring.property_recorder.config import (
-    RecorderConfig, PropertyAttributeHandler)
+from xml.dom.minidom import Element
+from mock import (create_autospec, MagicMock)
+from CORBA import (Any, TC_string)  # @UnresolvedImport
+from ACS import _objref_ROdouble  # @UnresolvedImport
+from ACS import NoSuchCharacteristic  # @UnresolvedImport
+from ctamonitoring.property_recorder import config
 from ctamonitoring.property_recorder.config import BACKEND_TYPE
 from ctamonitoring.property_recorder.constants import (
     ATTRIBUTE_INFO, DECODE_METHOD)
-from mock import (create_autospec, MagicMock)
-from ACS import _objref_ROdouble  # @UnresolvedImport
-from CORBA import (Any, TC_string)  # @UnresolvedImport
-from xml.dom.minidom import Element
-from ACS import NoSuchCharacteristic  # @UnresolvedImport
+from ctamonitoring.property_recorder.config import (
+    RecorderConfig)
 
 __version__ = '$Id$'
 
 
 class Defaults:
-    '''
+    """
     Defauls values for the unit test
-    '''
+    """
     default_timer_trigger = 60.0
     max_comps = 100
     max_props = 1000
@@ -45,9 +44,9 @@ class Defaults:
 
 
 class RecorderConfigTest(unittest.TestCase):
-    a_long = 150L
+    a_long = 150
     a_float = 0.8
-    a_neg_long = -1L
+    a_neg_long = -1
     a_string = 'a'
     a_string_set = set(['a', 'b'])
     a_hybrid_set = set(['a', 1])
@@ -215,7 +214,7 @@ class RecorderConfigTest(unittest.TestCase):
             self.a_string_set)
 
         self.recoder_config.set_components(self.a_string_set)
-        self.assertEquals(self.recoder_config.components, self.a_string_set)
+        self.assertEqual(self.recoder_config.components, self.a_string_set)
 
         self.assertRaises(
             TypeError,
@@ -228,14 +227,14 @@ class RecorderConfigTest(unittest.TestCase):
             self.a_hybrid_set)
 
 
-class PropertyAttributeHandlerTest(unittest.TestCase):
+class ConfigTest(unittest.TestCase):
     def setUp(self):
         self.mocked_property = create_autospec(_objref_ROdouble)
         self.mocked_property.find_characteristic = MagicMock(
-            side_effect=self.__side_effect_find_characteristic
+            side_effect=side_effect_find_characteristic
             )
         self.mocked_property.get_characteristic_by_name = MagicMock(
-            side_effect=self.__side_effect_get_characteristic
+            side_effect=side_effect_get_characteristic
             )
         self.mocked_property._get_name = MagicMock(
             return_value="MockProperty"
@@ -243,53 +242,13 @@ class PropertyAttributeHandlerTest(unittest.TestCase):
 
         self.mocked_cdb = create_autospec(Element)
         self.mocked_cdb.getAttribute = MagicMock(
-            side_effect=self.__side_effect_cdb_xml)
+            side_effect=side_effect_cdb_xml)
         self.mocked_cdb.nodeName = MagicMock(
             return_value="MockProperty"
             )
 
-    def __side_effect_find_characteristic(self, value):
-        '''
-        Needed to mock the CDB behavior
-        '''
-        if value is "default_timer_trig":
-            return ['default_timer_trig']
-        elif value is "default_value":
-            return ['default_value']
-        elif value is "units":
-            return ['units']
-        else:
-            return []
-
-    def __side_effect_get_characteristic(self, value):
-        '''
-        Needed to mock the CDB behavior
-        '''
-        if value is "default_timer_trig":
-            return Any(TC_string, '10.0')
-        elif value is "default_value":
-            raise NoSuchCharacteristic("testing", "default_value")
-            # failing intentionally at default_value
-        elif value is "units":
-            return Any(TC_string, 'celsius')
-        else:
-            raise NoSuchCharacteristic("testing", "testing")
-
-    def __side_effect_cdb_xml(self, value):
-        '''
-        Needed to mock the CDB behavior
-        '''
-        if value is "default_timer_trig":
-            return "15.0"
-        elif value is "default_value":
-            return "22.0"
-        elif value is "units":
-            return "celsius"
-        else:
-            return None
-
     def test_get_prop_attribs_cdb(self):
-        attribs = PropertyAttributeHandler.get_prop_attribs_cdb(
+        attribs = config.get_prop_attribs_cdb(
             self.mocked_property)
         self.assertIsInstance(
             attribs,
@@ -304,11 +263,11 @@ class PropertyAttributeHandlerTest(unittest.TestCase):
             False, None)
         self.assertEqual(
             None,
-            PropertyAttributeHandler._get_cdb_entry(
+            config.get_cdb_entry(
                 bad_attribute, self.mocked_property))
 
     def test_get_prop_attribs_cdb_xml(self):
-        attribs = PropertyAttributeHandler.get_prop_attribs_cdb_xml(
+        attribs = config.get_prop_attribs_cdb_xml(
             self.mocked_cdb)
         self.assertIsInstance(
             attribs,
@@ -316,9 +275,9 @@ class PropertyAttributeHandlerTest(unittest.TestCase):
         self.assertEqual(attribs['default_timer_trig'], 15.0)
 
     def test_process_attribute(self):
-        '''
+        """
         Test to decode attributes that have problems
-        '''
+        """
         good_atribute = ATTRIBUTE_INFO(
             'default_timer_trig',
             DECODE_METHOD.AST_LITERAL, True, None)
@@ -335,31 +294,72 @@ class PropertyAttributeHandlerTest(unittest.TestCase):
         synonym_true = "yes"
         synonym_bad = "plof"
 
-        self.assertEqual(PropertyAttributeHandler._process_attribute(
+        self.assertEqual(config.process_attribute(
             good_atribute, good_value), 1.1)
-        self.assertEqual(PropertyAttributeHandler._process_attribute(
+        self.assertEqual(config.process_attribute(
             good_atribute, negative_value), None)
-        self.assertEqual(PropertyAttributeHandler._process_attribute(
+        self.assertEqual(config.process_attribute(
             good_atribute, wrong_type), None)
-        self.assertEqual(PropertyAttributeHandler._process_attribute(
+        self.assertEqual(config.process_attribute(
             good_atribute, malformed_1), None)
-        self.assertEqual(PropertyAttributeHandler._process_attribute(
+        self.assertEqual(config.process_attribute(
             good_atribute, malformed_2), None)
-        self.assertTrue(PropertyAttributeHandler._process_attribute(
+        self.assertTrue(config.process_attribute(
             good_atribute, true_ok))
-        self.assertFalse(PropertyAttributeHandler._process_attribute(
+        self.assertFalse(config.process_attribute(
             good_atribute, false_ok))
-        self.assertTrue(PropertyAttributeHandler._process_attribute(
+        self.assertTrue(config.process_attribute(
             synomim_atribute, synonym_true))
-        self.assertFalse(PropertyAttributeHandler._process_attribute(
+        self.assertFalse(config.process_attribute(
             synomim_atribute, synonym_bad))
 
 
-def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(RecorderConfigTest))
-    suite.addTest(unittest.makeSuite(PropertyAttributeHandlerTest))
-    return suite
+def side_effect_cdb_xml(value):
+    """
+    Needed to mock the CDB behavior
+    """
+    if value == "default_timer_trig":
+        return "15.0"
+    elif value == "default_value":
+        return "22.0"
+    elif value == "units":
+        return "celsius"
+    else:
+        return None
+
+
+def side_effect_get_characteristic(value):
+    """
+    Needed to mock the CDB behavior
+    """
+    if value == "default_timer_trig":
+        return Any(TC_string, '10.0')
+    elif value == "default_value":
+        raise NoSuchCharacteristic("testing", "default_value")
+        # failing intentionally at default_value
+    elif value == "units":
+        return Any(TC_string, 'celsius')
+    else:
+
+        raise NoSuchCharacteristic("testing", "testing")
+
+
+def side_effect_find_characteristic(value):
+    """
+    Needed to mock the CDB behavior
+    """
+    if value == "default_timer_trig":
+        return ['default_timer_trig']
+    elif value == "default_value":
+        return ['default_value']
+    elif value == "units":
+        return ['units']
+    else:
+        return []
+
+suite = unittest.TestSuite()
+suite.addTest(unittest.makeSuite(RecorderConfigTest))
+suite.addTest(unittest.makeSuite(ConfigTest))
 
 
 if __name__ == "__main__":
