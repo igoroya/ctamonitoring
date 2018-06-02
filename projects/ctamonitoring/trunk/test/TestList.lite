@@ -1,8 +1,14 @@
 SOURCE PropertyRecorderTatEnvironment
-PROLOGUE  PropertyRecorderTatPrologue
-test_config
-test_standalone_recorder
-test_callbacks
-test_front_end
-test_util
-EPILOGUE PropertyRecorderTatEpilogue
+# PROLOGUE  PropertyRecorderTatPrologue
+00  UnitTests "test_callbacks" "test_enum_util" "test_attribute_decoder" \
+               "test_config" "test_standalone_recorder" "test_front_end" \
+               "test_frontend_exceptions"
+                                
+# 01  AcsIntegration  "acsutilTATPrologue -l" \
+#                    "acsutilTATTestRunner acsutilAwaitContainerStart -cpp myC" \
+#                    "acsutilTATTestRunner acsStartContainer -py myP" "@SLEEP 10" \
+#                    "acsutilTATTestRunner test_acs_integration" 
+#                    "acsutilTATTestRunner acsStopContainer myP" \   
+#                    "acsutilTATTestRunner acsStopContainer myC"                    
+                    
+# EPILOGUE acsutilTATEpilogue

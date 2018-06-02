@@ -30,19 +30,19 @@ __version__ = "$Id$"
 
 BACKEND_TYPE = Enum('BACKEND_TYPE', 'DUMMY LOG MYSQL MONGODB')
 
-# BACKEND_REGISTRIES = {}
-# BACKEND_REGISTRIES[BACKEND_TYPE.DUMMY] = get_registry_class("dummy")
-# BACKEND_REGISTRIES[BACKEND_TYPE.LOG] = get_registry_class("log")
-# BACKEND_REGISTRIES[BACKEND_TYPE.MYSQL] = None
-# BACKEND_REGISTRIES[BACKEND_TYPE.MONGODB] = get_registry_class("mongodb")
 
-def get_registries():
-    BACKEND_REGISTRIES = {}
-    BACKEND_REGISTRIES[BACKEND_TYPE.DUMMY] = get_registry_class("dummy")
-    BACKEND_REGISTRIES[BACKEND_TYPE.LOG] = get_registry_class("log")
-    BACKEND_REGISTRIES[BACKEND_TYPE.MYSQL] = None
-    BACKEND_REGISTRIES[BACKEND_TYPE.MONGODB] = get_registry_class("mongodb")
-    return BACKEND_REGISTRIES
+def get_registry(reg_name):
+    if reg_name is BACKEND_TYPE.DUMMY:
+        return get_registry_class("dummy")
+    elif reg_name is BACKEND_TYPE.LOG:
+        return get_registry_class("log")
+    elif reg_name is BACKEND_TYPE.MYSQL:
+        return None
+    elif reg_name is BACKEND_TYPE.MONGODB:
+        return get_registry_class("mongodb")
+    else:
+        raise KeyError
+
 
 class RecorderConfig(object):
     """

@@ -108,7 +108,7 @@ class UnsupporterPropertyTypeError(Exception):
         retVal = (
             "Property type: " +
             str(self.property_rep_id) +
-            " is not supported "
+            " is not supported"
         )
         if self.msg:
             retVal += ": " + self.msg
@@ -138,7 +138,7 @@ class BadCdbRecorderConfig(Exception):
         retVal = (
             str(self.e) + ": The entry for " +
             str(self.cdb_entry_id) +
-            " is not correct in the component CDB "
+            " is not correct in the component CDB"
         )
         if self.msg:
             retVal += ": " + self.msg
@@ -160,7 +160,7 @@ class AcsIsDownError(Exception):
         self.msg = msg
 
     def __str__(self):
-        retVal = "ACS is in a wrong state. "
+        retVal = "ACS is in a wrong state"
         if self.msg:
-            retVal += " " + self.msg
+            retVal += ": " + self.msg
         return retVal

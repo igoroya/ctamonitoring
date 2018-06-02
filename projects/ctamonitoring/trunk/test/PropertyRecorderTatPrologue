@@ -4,24 +4,21 @@
 # mail: igor.oya.vallejo@desy.de
 
 echo " ****************** PropertyRecorderTATPrologue ************* "
-export ACS_CDB=$PWD/test_util
-export ACS_TMP=$PWD/tmp
 
 # Starting ORB Services, Manager, CDB, loggingClient etc
 # todo add --noloadifr 
-acsutilTATPrologue -l
+# acsutilTATPrologue -l
 
-# Tweak dynamicContainer's DeployInfo. See http://jira.alma.cl/browse/COMP-2560?focusedCommentId=26674#action_26674 about making this unnecessary.
-#acsReplace -quiet "%HOST" $HOST $ACS_CDB/CDB/MACI/Containers/dynamicContainer/dynamicContainer.xml
-#cdbjDALClearCache
+# In case we want to Tweak dynamicContainer's DeployInfo. See http://jira.alma.cl/browse/COMP-2560?focusedCommentId=26674#action_26674 about making this unnecessary.
+# acsReplace -quiet "%HOST" $HOST $ACS_CDB/CDB/MACI/Containers/dynamicContainer/dynamicContainer.xml
+cdbjDALClearCache
+# echo " Starting container daemon (if it is not running already) which will run java container 'dynamicContainer'"
+# acscontainerdaemonSmartStart >& $ACS_TMP/acscontainerdaemonSmartStart.out
 
-echo " Starting container daemon (if it is not running already) which will run java container 'dynamicContainer'"
-acscontainerdaemonSmartStart >& $ACS_TMP/acscontainerdaemonSmartStart.out
-
-echo " Starting Java Containers"
-#export JAVA_OPTIONS="-Dacs.container.fakeUIDsForTesting=true"
-#acsutilAwaitContainerStart -java ccdContainer
-acsutilAwaitContainerStart -cpp myC
-acsutilAwaitContainerStart -py myP
+# echo " Starting Java Containers"
+# export JAVA_OPTIONS="-Dacs.container.fakeUIDsForTesting=true"
+# acsutilAwaitContainerStart -java ccdContainer
+# acsutilAwaitContainerStart -cpp myC
+# acsutilAwaitContainerStart -py myP
 
 

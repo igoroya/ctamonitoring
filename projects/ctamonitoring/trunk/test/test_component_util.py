@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Unit test module for util.component_util
 

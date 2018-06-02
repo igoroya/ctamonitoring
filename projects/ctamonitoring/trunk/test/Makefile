@@ -24,9 +24,10 @@ DEBUG = on
 # Scripts (public and local)
 # ----------------------------
 SCRIPTS         = 
-SCRIPTS_L       = PropertyRecorderTatPrologue PropertyRecorderTatEpilogue
+SCRIPTS_L       = PropertyRecorderTatPrologue
 
-PY_SCRIPTS_L    = test_util test_callbacks test_config test_front_end test_standalone_recorder
+PY_SCRIPTS_L    = test_callbacks test_config test_front_end test_standalone_recorder \
+                  test_enum_util test_attribute_decoder test_acs_integration test_frontend_exceptions
 
 
 #>>>>> END OF standard rules

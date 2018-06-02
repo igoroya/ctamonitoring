@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 Unit test module for callbacks
 
 Here we test the base class for all these callbacks and
@@ -11,7 +11,7 @@ also the CBFactory to get them
 @version: $Id$
 @change: $LastChangedDate$
 @change: $LastChangedBy$
-'''
+"""
 import unittest
 from ctamonitoring.property_recorder.backend.dummy.registry import Buffer
 from ctamonitoring.property_recorder import callbacks

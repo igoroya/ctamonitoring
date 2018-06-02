@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Unit test module for test_config
 
@@ -73,6 +74,7 @@ class MockedStandaloneRecorder(StandaloneRecorder):
 
     We mock the ACS Python client, the frontend, and use the standard
     logger instead of the ACS logger.
+    TODO: Take it out for common usage with test_fron_end?
     '''
 
     def _setup_acs_client(self):

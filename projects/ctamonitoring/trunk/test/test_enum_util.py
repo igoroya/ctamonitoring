@@ -1,8 +1,9 @@
-'''
+#!/usr/bin/env python
+"""
 Created on 6 Apr 2018
 
 @author: igoroya
-'''
+"""
 import unittest
 from enum import Enum
 from ctamonitoring.property_recorder.util import (enum_util)
